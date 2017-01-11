@@ -27,12 +27,12 @@ void ppmRising() {
 }
 
 void wait_for_initial_inputs() {
-  unsigned int b = 0x00000000;
-  while( b != 0x00001111 ) {
-    if( ppm_channels[1] > 1490 && ppm_channels[1]  < 1510 ) b = b | 0x00000001;
-    if( ppm_channels[2] > 1490 && ppm_channels[2]  < 1510 ) b = b | 0x00000010;    
-    if( ppm_channels[3] > 1490 && ppm_channels[3]  < 1510 ) b = b | 0x00000100;
-    if( ppm_channels[4] > 1490 && ppm_channels[4]  < 1510 ) b = b | 0x00001000;
+  unsigned int b = B00000000;
+  while( b != B00001111 ) {
+    if( ppm_channels[1] > 1490 && ppm_channels[1]  < 1510 ) b = b | B00000001;
+    if( ppm_channels[2] > 1490 && ppm_channels[2]  < 1510 ) b = b | B00000010;    
+    if( ppm_channels[3] > 1490 && ppm_channels[3]  < 1510 ) b = b | B00000100;
+    if( ppm_channels[4] > 1490 && ppm_channels[4]  < 1510 ) b = b | B00001000;
   }
 }
 

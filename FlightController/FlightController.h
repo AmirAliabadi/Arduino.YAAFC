@@ -1,14 +1,14 @@
 #define LED_PIN 13            // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 #define LOG_FREQUENCY  250    // ms DEBUG Logging interval
 
-#define INIT_CLEARED          0b00000000
-#define INIT_ESC_ATTACHED     0b00000001
-#define INIT_ESC_ARMED        0b00000010
-#define INIT_THROTTLE_ACTIVE  0b00000100
-#define INIT_MOTORS_ENABLED   0b00001000
-#define INIT_MPU_ARMED        0b00010000
-#define INIT_MPU_STABLE       0b00100000
-#define INIT_PID_ON           0b01000000
+#define INIT_CLEARED          B00000000
+#define INIT_ESC_ATTACHED     B00000001
+#define INIT_ESC_ARMED        B00000010
+#define INIT_THROTTLE_ACTIVE  B00000100
+#define INIT_MOTORS_ENABLED   B00001000
+#define INIT_MPU_ARMED        B00010000
+#define INIT_MPU_STABLE       B00100000
+#define INIT_PID_ON           B01000000
 
 ////////////////////////////////////////////////////////////////
 // ESC Settings
@@ -24,4 +24,4 @@
 #define MAX_INPUT_THRUST  1000
 
 
-uint16_t system_check = INIT_CLEARED;
+uint8_t system_check = INIT_CLEARED;

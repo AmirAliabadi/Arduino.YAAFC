@@ -8,8 +8,8 @@ unsigned long timer_channel_a = 0;
 unsigned long timer_channel_b = 0; 
 unsigned long timer_channel_c = 0;
 unsigned long timer_channel_d = 0; 
-//                          abcd
-unsigned int motors = 0b00000000;
+//                         abcd
+unsigned int motors = B00000000;
 
 unsigned int va,vb,vc,vd ;  // motors a,b,c and d outputs
 
@@ -68,13 +68,13 @@ Pin   Port Pin
   timer_channel_c = last_pwm_pulse + vc;
   timer_channel_d = last_pwm_pulse + vd;
 
-  motors = 0b00001111;
+  motors = B00001111;
   while( motors ) 
   {
       esc_pwm_timmer = micros();
-      if( (motors & 0b00001000) && ( esc_pwm_timmer > timer_channel_a )){ PORTD &= B10111111; motors &= 0b00000111; }
-      if( (motors & 0b00000100) && ( esc_pwm_timmer > timer_channel_b )){ PORTB &= B11110111; motors &= 0b00001011; }
-      if( (motors & 0b00000010) && ( esc_pwm_timmer > timer_channel_c )){ PORTB &= B11111011; motors &= 0b00001101; }
-      if( (motors & 0b00000001) && ( esc_pwm_timmer > timer_channel_d )){ PORTB &= B11111101; motors &= 0b00001110; }      
+      if( (motors & B00001000) && ( esc_pwm_timmer > timer_channel_a )){ PORTD &= B10111111; motors &= B00000111; }
+      if( (motors & B00000100) && ( esc_pwm_timmer > timer_channel_b )){ PORTB &= B11110111; motors &= B00001011; }
+      if( (motors & B00000010) && ( esc_pwm_timmer > timer_channel_c )){ PORTB &= B11111011; motors &= B00001101; }
+      if( (motors & B00000001) && ( esc_pwm_timmer > timer_channel_d )){ PORTB &= B11111101; motors &= B00001110; }      
   }
 }

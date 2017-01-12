@@ -25,3 +25,13 @@
 
 
 byte system_check = INIT_CLEARED;
+
+struct EEPROMData {
+  char id[3];
+  int ax_offset;
+  int ay_offset;
+  int az_offset;
+  int gx_offset;
+  int gy_offset;
+  int gz_offset;
+} eeprom_data;

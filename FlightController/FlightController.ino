@@ -17,11 +17,17 @@ int yaw_input = 0;
 
 
 void setup() {
-//#ifdef DEBUG
+#ifdef DEBUG
   Serial.begin(57600);
-//#endif
+#endif
 
   system_check = INIT_CLEARED;
+
+  EEPROM.get(0, eeprom_data);
+  if(eeprom_data.id[0] != 'A' && eeprom_data.id[1] != 'A') {
+    // EEPROM is not configured
+    // FAIL the bootup
+  }  
 
   Wire.begin();
   
@@ -54,15 +60,10 @@ void loop() {
   if( system_check & INIT_ESC_ARMED ) {
 
     // READ MPU
-    // TODO:
     read_mpu_process();
-//#ifdef DEBUG
-    Serial.print( gyro.x );
-    Serial.print( "\t" );
-    Serial.print( gyro.y );
-    Serial.print( "\t" );
-    Serial.println( gyro.z );
-//#endif    
+#ifdef DEBUG
+    Serial.print( gyro.x ); Serial.print( "\t" ); Serial.print( gyro.y ); Serial.print( "\t" ); Serial.println( gyro.z );
+#endif    
 
     // DO PID CALCUATIONS
     // TODO:

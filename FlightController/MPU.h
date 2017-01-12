@@ -24,10 +24,7 @@ void init_mpu()
     mpu.initialize();
 
 #ifdef DEBUG
-    // verify connection
     Serial.println(mpu.testConnection() ? F("#MPU6050 ok") : F("MPU6050 failed"));
-
-    // load and configure the DMP
     Serial.println(F("#Init DMP"));
 #endif    
 

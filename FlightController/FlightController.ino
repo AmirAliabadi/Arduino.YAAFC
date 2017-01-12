@@ -1,10 +1,14 @@
+//#define DEBUG
+
 #include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
 #include <Wire.h>
+#include "I2Cdev.h"
+
+//#define DEBUG
 #include "FlightController.h"
 #include "PPM.h"
 #include "ESC.h"
-
-#define DEBUG
+#include "MPU.h"
 
 int throttle_input = 0;
 int pitch_input = 0;
@@ -13,9 +17,9 @@ int yaw_input = 0;
 
 
 void setup() {
-#ifdef DEBUG
+//#ifdef DEBUG
   Serial.begin(57600);
-#endif
+//#endif
 
   system_check = INIT_CLEARED;
 
@@ -26,6 +30,7 @@ void setup() {
   wait_for_initial_inputs();
 
   init_esc();
+  init_mpu();
 
 #ifdef DEBUG
   Serial.println( "****" );
@@ -50,6 +55,14 @@ void loop() {
 
     // READ MPU
     // TODO:
+    read_mpu_process();
+//#ifdef DEBUG
+    Serial.print( gyro.x );
+    Serial.print( "\t" );
+    Serial.print( gyro.y );
+    Serial.print( "\t" );
+    Serial.println( gyro.z );
+//#endif    
 
     // DO PID CALCUATIONS
     // TODO:

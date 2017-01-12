@@ -24,4 +24,4 @@
 #define MAX_INPUT_THRUST  1000
 
 
-uint8_t system_check = INIT_CLEARED;
+byte system_check = INIT_CLEARED;

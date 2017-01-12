@@ -1,3 +1,5 @@
+#include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
+#include <Wire.h>
 #include "FlightController.h"
 #include "PPM.h"
 #include "ESC.h"
@@ -16,26 +18,60 @@ void setup() {
 #endif
 
   system_check = INIT_CLEARED;
+
+  Wire.begin();
   
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
   wait_for_initial_inputs();
 
   init_esc();
-  arm_esc();  
+
+#ifdef DEBUG
+  Serial.println( "****" );
+#endif  
 }
 
 void loop() {
-
+  // READ PPM Inputs
   pitch_input    = ppm_channels[1] ;
   roll_input     = ppm_channels[2] ;
   throttle_input = ppm_channels[3] ;
-  yaw_input      = ppm_channels[4] ;    
+  yaw_input      = ppm_channels[4] ; 
 
-  va = throttle_input;
-  vb = throttle_input;
-  vc = throttle_input;
-  vd = throttle_input;
+  // Look for ESC Arm/Disarm gestures
+  if( throttle_input < 1050 && yaw_input > 1950 && roll_input < 1050 && pitch_input < 1050 ) {
+    disarm_esc();
+  } else if ( throttle_input < 1050 && yaw_input < 1050 && roll_input < 1050 && pitch_input > 1950 ) {
+    arm_esc();
+  }
+
+  if( system_check & INIT_ESC_ARMED ) {
+
+    // READ MPU
+    // TODO:
+
+    // DO PID CALCUATIONS
+    // TODO:
+
+    // READ BATTERY LEVEL
+    // TODO:
+
+    // DO MOTOR MIX ALGORITHM
+    // TODO:
+    
+    va = throttle_input;
+    vb = throttle_input;
+    vc = throttle_input;
+    vd = throttle_input;
+    
+  } else {
+    va = MIN_ESC_SIGNAL;
+    vb = MIN_ESC_SIGNAL;
+    vc = MIN_ESC_SIGNAL;
+    vd = MIN_ESC_SIGNAL;
+        
+  }
 
   update_motors();
 }

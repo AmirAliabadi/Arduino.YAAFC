@@ -8,8 +8,8 @@ unsigned long timer_channel_a = 0;
 unsigned long timer_channel_b = 0; 
 unsigned long timer_channel_c = 0;
 unsigned long timer_channel_d = 0; 
-//                         abcd
-unsigned int motors = B00000000;
+//                 abcd
+byte motors = B00000000;
 
 unsigned int va,vb,vc,vd ;  // motors a,b,c and d outputs
 

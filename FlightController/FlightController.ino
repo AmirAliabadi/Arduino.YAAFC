@@ -38,17 +38,14 @@ void setup() {
   init_esc();
   init_mpu();
 
-#ifdef DEBUG
-  Serial.println( "****" );
-#endif  
 }
 
 void loop() {
-  // READ PPM Inputs
-  pitch_input    = ppm_channels[1] ;
-  roll_input     = ppm_channels[2] ;
-  throttle_input = ppm_channels[3] ;
-  yaw_input      = ppm_channels[4] ; 
+
+  pitch_input    = ppm_channels[1] ;  // Read ppm channel 1
+  roll_input     = ppm_channels[2] ;  // Read ppm channel 2
+  throttle_input = ppm_channels[3] ;  // Read ppm channel 3
+  yaw_input      = ppm_channels[4] ;  // Read ppm channel 4
 
   // Look for ESC Arm/Disarm gestures
   if( throttle_input < 1050 && yaw_input > 1950 && roll_input < 1050 && pitch_input < 1050 ) {
@@ -57,13 +54,18 @@ void loop() {
     arm_esc();
   }
 
-  if( system_check & INIT_ESC_ARMED ) {
-
-    // READ MPU
-    read_mpu_process();
+  read_mpu_process();               // READ MPU   
+    
 #ifdef DEBUG
-    Serial.print( gyro.x ); Serial.print( "\t" ); Serial.print( gyro.y ); Serial.print( "\t" ); Serial.println( gyro.z );
-#endif    
+    Serial.print( "gyro: " )
+    Serial.print( gyro.x ); 
+    Serial.print( "\t" ); 
+    Serial.print( gyro.y ); 
+    Serial.print( "\t" ); 
+    Serial.println( gyro.z );
+#endif   
+
+  if( system_check & INIT_ESC_ARMED ) {
 
     // DO PID CALCUATIONS
     // TODO:

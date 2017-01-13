@@ -2,20 +2,14 @@
 //#include "MPU6050_9Axis_MotionApps41.h"
 //#include "MPU6050.h" // not necessary if using MotionApps include file
 
-////////////////////////////////////////////////////////////////
-// MPU setup
 MPU6050 mpu;
 
-// MPU control/status vars
 uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
 uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
 uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
 uint16_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
-
 VectorInt16 gyro;
-//
-////////////////////////////////////////////////////////////////
 
 void init_mpu()
 {
@@ -67,10 +61,6 @@ void init_mpu()
 * 7         | -- Reserved -- | -- Reserved -- | Reserved  
 */
 //      mpu.setDLPFMode(MPU6050_DLPF_BW_5);
-     
-      // enable Arduino interrupt detection
-      //Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
-      //attachInterrupt(digitalPinToInterrupt(2), dmpDataReady, RISING);
       
       mpuIntStatus = mpu.getIntStatus();
 

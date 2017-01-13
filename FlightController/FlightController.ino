@@ -9,11 +9,14 @@
 #include "PPM.h"
 #include "ESC.h"
 #include "MPU.h"
+#include "PID.h"
 
 int throttle_input = 0;
 int pitch_input = 0;
 int roll_input = 0;
 int yaw_input = 0;
+
+int throttle = MIN_ESC_SIGNAL;
 
 
 void setup() {
@@ -37,6 +40,7 @@ void setup() {
 
   init_esc();
   init_mpu();
+  init_pid();
 
 }
 
@@ -67,21 +71,46 @@ void loop() {
 
   if( system_check & INIT_ESC_ARMED ) {
 
+         if( throttle_input < 1100  && throttle >= 1400 ) { throttle -=  10;  } // AA fast decrease in throttle
+    else if( throttle_input < 1200  && throttle >= 1010 ) { throttle -=   5;  } // AA medium decrease in throttle
+    else if( throttle_input < 1400  && throttle >= 1001 ) { throttle -=   1;  } // AA slow decrease in throttle   
+    else if( throttle_input > 1600  && throttle <= 1999 ) { throttle +=   1;  } // AA slow increase in throttle
+    else if( throttle_input > 1800  && throttle <= 1990 ) { throttle +=  10;  } // AA medium increase in throttle   
+    else if( throttle_input < 1010                      ) { throttle = MIN_ESC_CUTOFF;  }   
+
+    if( throttle > MAX_ESC_SIGNAL ) throttle = MAX_ESC_SIGNAL;
+    if( throttle < MIN_ESC_CUTOFF ) throttle = MIN_ESC_CUTOFF;
+
     // DO PID CALCUATIONS
-    // TODO:
+    // We have the gyro data and the stick inputs
+    //pid_yaw_rate   = yaw_pid.calculate( yaw_input, gyro.z );
+    //pid_pitch_rate = pitch_pid.calculate( pitch_input, gyro.x ); 
+    //pid_roll_rate  = roll_pid.calculate( roll_input, gyro.y ); 
 
     // READ BATTERY LEVEL
     // TODO:
 
     // DO MOTOR MIX ALGORITHM
-    // TODO:
-    
-    va = throttle_input;
-    vb = throttle_input;
-    vc = throttle_input;
-    vd = throttle_input;
+    // This is for an X setup
+    va = throttle - pid_pitch_rate + pid_roll_rate - pid_yaw_rate; //Calculate the pulse for esc a (front-right - CCW)
+    vb = throttle + pid_pitch_rate + pid_roll_rate + pid_yaw_rate; //Calculate the pulse for esc b (rear-right  -  CW)
+    vc = throttle + pid_pitch_rate - pid_roll_rate - pid_yaw_rate; //Calculate the pulse for esc c (rear-left   - CCW)
+    vd = throttle - pid_pitch_rate - pid_roll_rate + pid_yaw_rate; //Calculate the pulse for esc d (front-left  -  CW)
+
+    if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
+    if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;
+    if( vc < MIN_ESC_CUTOFF ) vc = MIN_ESC_CUTOFF;
+    if( vd < MIN_ESC_CUTOFF ) vd = MIN_ESC_CUTOFF;
+
+    if( va > MAX_ESC_SIGNAL ) va = MAX_ESC_SIGNAL;
+    if( vb > MAX_ESC_SIGNAL ) vb = MAX_ESC_SIGNAL;
+    if( vc > MAX_ESC_SIGNAL ) vc = MAX_ESC_SIGNAL;
+    if( vd > MAX_ESC_SIGNAL ) vd = MAX_ESC_SIGNAL;
     
   } else {
+    
+    pid_reset();
+    
     va = MIN_ESC_SIGNAL;
     vb = MIN_ESC_SIGNAL;
     vc = MIN_ESC_SIGNAL;

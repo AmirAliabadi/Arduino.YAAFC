@@ -66,15 +66,6 @@ void loop() {
 
   read_mpu_process();               // READ MPU   
     
-#ifdef DEBUG
-//    Serial.print( "gyro: " )
-//    Serial.print( gyro.x ); 
-//    Serial.print( "\t" ); 
-//    Serial.print( gyro.y ); 
-//    Serial.print( "\t" ); 
-//    Serial.println( gyro.z );
-#endif   
-
   if( system_check & INIT_ESC_ARMED ) {
 
          if( throttle_input < 1100  && throttle >= 1400 ) { throttle -=  10;  } // AA fast decrease in throttle
@@ -100,25 +91,6 @@ void loop() {
     vb = throttle + p_pid_rate_out + r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc b (rear-right  -  CW)
     vc = throttle + p_pid_rate_out - r_pid_rate_out - y_pid_rate_out; //Calculate the pulse for esc c (rear-left   - CCW)
     vd = throttle - p_pid_rate_out - r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc d (front-left  -  CW)
-
-#ifdef DEBUG
-//    Serial.print( "esc: " );
-//    Serial.print( va ); 
-//    Serial.print( "\t" ); 
-//    Serial.print( vb ); 
-//    Serial.print( "\t" ); 
-//    Serial.print( vc );
-//    Serial.print( "\t" ); 
-//    Serial.println( vd );    
-//    Serial.print ( "pid: " );
-//    Serial.print ( p_pid_rate_out );
-//    Serial.print ( "\t" );
-//    Serial.print ( p_pid_term[0] );
-//    Serial.print ( "\t" );    
-//    Serial.print ( p_pid_term[1] );
-//    Serial.print ( "\t" );    
-//    Serial.println ( p_pid_term[2] );
-#endif       
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;

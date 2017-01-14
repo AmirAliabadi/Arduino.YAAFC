@@ -7,10 +7,11 @@ unsigned long timer_channel_a = 0;
 unsigned long timer_channel_b = 0; 
 unsigned long timer_channel_c = 0;
 unsigned long timer_channel_d = 0; 
+
 //                 abcd
 byte motors = B00000000;
 
-unsigned int va,vb,vc,vd ;  // motors a,b,c and d outputs
+long va,vb,vc,vd ;  // motors a,b,c and d outputs
 
 
 void init_esc()

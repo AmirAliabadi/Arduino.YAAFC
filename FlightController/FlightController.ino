@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 
 #include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
 #include <Wire.h>
@@ -9,7 +9,7 @@
 #include "PPM.h"
 #include "ESC.h"
 #include "MPU.h"
-#include "PID.h"
+
 
 int throttle_input = 0;
 int pitch_input = 0;
@@ -18,6 +18,7 @@ int yaw_input = 0;
 
 int throttle = MIN_ESC_SIGNAL;
 
+#include "PID.h"
 
 void setup() {
 #ifdef DEBUG
@@ -58,15 +59,20 @@ void loop() {
     arm_esc();
   }
 
+  // adjust so 1500 = Zero input
+  pitch_input = 1500 - pitch_input ;
+  roll_input  = 1500 - roll_input ;
+  yaw_input   = 1500 - yaw_input ;    
+
   read_mpu_process();               // READ MPU   
     
 #ifdef DEBUG
-    Serial.print( "gyro: " )
-    Serial.print( gyro.x ); 
-    Serial.print( "\t" ); 
-    Serial.print( gyro.y ); 
-    Serial.print( "\t" ); 
-    Serial.println( gyro.z );
+//    Serial.print( "gyro: " )
+//    Serial.print( gyro.x ); 
+//    Serial.print( "\t" ); 
+//    Serial.print( gyro.y ); 
+//    Serial.print( "\t" ); 
+//    Serial.println( gyro.z );
 #endif   
 
   if( system_check & INIT_ESC_ARMED ) {
@@ -83,19 +89,36 @@ void loop() {
 
     // DO PID CALCUATIONS
     // We have the gyro data and the stick inputs
-    //pid_yaw_rate   = yaw_pid.calculate( yaw_input, gyro.z );
-    //pid_pitch_rate = pitch_pid.calculate( pitch_input, gyro.x ); 
-    //pid_roll_rate  = roll_pid.calculate( roll_input, gyro.y ); 
+    do_pid_compute();
 
     // READ BATTERY LEVEL
     // TODO:
 
     // DO MOTOR MIX ALGORITHM
     // This is for an X setup
-    va = throttle - pid_pitch_rate + pid_roll_rate - pid_yaw_rate; //Calculate the pulse for esc a (front-right - CCW)
-    vb = throttle + pid_pitch_rate + pid_roll_rate + pid_yaw_rate; //Calculate the pulse for esc b (rear-right  -  CW)
-    vc = throttle + pid_pitch_rate - pid_roll_rate - pid_yaw_rate; //Calculate the pulse for esc c (rear-left   - CCW)
-    vd = throttle - pid_pitch_rate - pid_roll_rate + pid_yaw_rate; //Calculate the pulse for esc d (front-left  -  CW)
+    va = throttle - p_pid_rate_out + r_pid_rate_out - y_pid_rate_out; //Calculate the pulse for esc a (front-right - CCW)
+    vb = throttle + p_pid_rate_out + r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc b (rear-right  -  CW)
+    vc = throttle + p_pid_rate_out - r_pid_rate_out - y_pid_rate_out; //Calculate the pulse for esc c (rear-left   - CCW)
+    vd = throttle - p_pid_rate_out - r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc d (front-left  -  CW)
+
+#ifdef DEBUG
+//    Serial.print( "esc: " );
+//    Serial.print( va ); 
+//    Serial.print( "\t" ); 
+//    Serial.print( vb ); 
+//    Serial.print( "\t" ); 
+//    Serial.print( vc );
+//    Serial.print( "\t" ); 
+//    Serial.println( vd );    
+//    Serial.print ( "pid: " );
+//    Serial.print ( p_pid_rate_out );
+//    Serial.print ( "\t" );
+//    Serial.print ( p_pid_term[0] );
+//    Serial.print ( "\t" );    
+//    Serial.print ( p_pid_term[1] );
+//    Serial.print ( "\t" );    
+//    Serial.println ( p_pid_term[2] );
+#endif       
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;

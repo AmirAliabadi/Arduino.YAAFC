@@ -16,6 +16,9 @@ void init_mpu()
     system_check &= ~(INIT_MPU_ENABLED | INIT_MPU_STABLE);
       
     mpu.initialize();
+    mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_500);
+    mpu.setTempFIFOEnabled(false);
+    //mpu.setFullScaleAccelRange(MPU6050_ACCEL_FS_2);    
 
 #ifdef DEBUG
     Serial.println(mpu.testConnection() ? F("#MPU6050 ok") : F("MPU6050 failed"));
@@ -28,14 +31,13 @@ void init_mpu()
     if (devStatus == 0)
     {
       // Supply your own gyro offsets here, scaled for min sensitivity
-/*      
+      
       mpu.setXAccelOffset(eeprom_data.ax_offset);
       mpu.setYAccelOffset(eeprom_data.ay_offset);
       mpu.setZAccelOffset(eeprom_data.az_offset);
       mpu.setXGyroOffset(eeprom_data.gx_offset);
       mpu.setYGyroOffset(eeprom_data.gy_offset);
       mpu.setZGyroOffset(eeprom_data.gz_offset);
-*/      
       
       // turn on the DMP, now that it's ready
       mpu.setDMPEnabled(true);
@@ -49,6 +51,7 @@ void init_mpu()
 //#define MPU6050_DLPF_BW_10          0x05
 //#define MPU6050_DLPF_BW_5           0x06
 /*
+ * *         Accelerometer        | GyroScope
 * DLPF_CFG  | Bandwidth | Delay   | Bandwidth | Delay   | Sample Rate
 *  ---------+-----------+---------+-----------+---------+-------------
 * 0         | 260Hz     | 0ms     | 256Hz     | 0.98ms  | 8kHz
@@ -60,7 +63,8 @@ void init_mpu()
 * 6         | 5Hz       | 19.0ms  | 5Hz       | 18.6ms  | 1kHz
 * 7         | -- Reserved -- | -- Reserved -- | Reserved  
 */
-//      mpu.setDLPFMode(MPU6050_DLPF_BW_5);
+      mpu.setDLPFMode(MPU6050_DLPF_BW_188);
+      mpu.setRate(0x05);  // MPU6050_RA_SMPLRT_DIV,  1kHz / (1 + 0x01) = 500hz .  1kHz / 1 + 0x03 = 250hz
       
       mpuIntStatus = mpu.getIntStatus();
 
@@ -92,7 +96,7 @@ void read_mpu_process()
   mpuIntStatus = mpu.getIntStatus();
 
   // get current FIFO count
-  fifoCount = mpu.getFIFOCount();
+  fifoCount = mpu.getFIFOCount(); // 200us
 
   // check for overflow (this should never happen unless our code is too inefficient)
   if ((mpuIntStatus & 0x10) || fifoCount == 1024)
@@ -107,10 +111,12 @@ void read_mpu_process()
   } // otherwise, check for DMP data ready interrupt (this should happen frequently)
   else if (mpuIntStatus & 0x02) {
     // wait for correct available data length, should be a VERY short wait
-    while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();
+    while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();   // < 5us
 
     // read a packet from FIFO
-    mpu.getFIFOBytes(fifoBuffer, packetSize);
+    digitalWrite(12, HIGH);          
+    mpu.getFIFOBytes(fifoBuffer, packetSize);  // 1.7ms
+    digitalWrite(12, LOW);          
 
     // track FIFO count here in case there is > 1 packet available
     // (this lets us immediately read more without waiting for an interrupt)

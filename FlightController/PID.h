@@ -79,6 +79,6 @@ void do_pid_compute()
     r_pid_rate_out  = r_pid_term[0] + r_pid_term[1] + r_pid_term[2] ; 
 
     if( r_pid_rate_out >  400.0 ) r_pid_rate_out =  400.0;
-    if( r_pid_rate_out < -400.0 ) r_pid_rate_out = -400.0;         
+    if( r_pid_rate_out < -400.0 ) r_pid_rate_out = -400.0;  
 
 }

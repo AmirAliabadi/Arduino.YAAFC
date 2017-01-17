@@ -1,10 +1,12 @@
 
 #define NUMBER_OF_PPM_CHANNELS 4
 
+// INT range : -32,768 to 32,767 
+
 volatile boolean ppm_sync = false;
 volatile unsigned long last_ppm_clock = 99999;
 volatile unsigned long current_ppm_clock = 0;
-volatile unsigned long ppm_dt = 0;
+volatile unsigned int ppm_dt = 0;
 volatile unsigned short ppm_current_channel = 99;
 volatile unsigned int ppm_channels[11] = {0,0,0,0,0,0,0,0,0,0,0}; // at most 10 channels (sync chaneel + 10 = 11)
 
@@ -27,7 +29,7 @@ void ppmRising() {
 }
 
 void wait_for_initial_inputs() {
-  unsigned int b = B00000000;
+  byte b = B00000000;
   while( b != B00001111 ) {
     if( ppm_channels[1] > 1490 && ppm_channels[1]  < 1510 ) b = b | B00000001;
     if( ppm_channels[2] > 1490 && ppm_channels[2]  < 1510 ) b = b | B00000010;    

@@ -20,9 +20,6 @@ float y_last_error    = 0.0;
 float p_last_error    = 0.0;
 float r_last_error    = 0.0;
 
-float p_integrated_error  = 0.0;
-float r_integrated_error  = 0.0;
-
 void init_pid()
 {
   system_check |= INIT_PID_ON ;
@@ -30,6 +27,20 @@ void init_pid()
 
 void pid_reset() 
 {
+  y_pid_rate_out   = 0.0;
+  p_pid_rate_out   = 0.0;
+  r_pid_rate_out   = 0.0;
+
+  y_last_error    = 0.0;
+  p_last_error    = 0.0;
+  r_last_error    = 0.0;
+
+  for( byte b =0; b<3; b++ ) {
+    y_pid_term[b]   = 0;
+    p_pid_term[b]   = 0;
+    r_pid_term[b]   = 0;  
+  }
+  
 }
 
 float pid_error;

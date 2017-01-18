@@ -34,8 +34,8 @@ CCW           CW
 #define MIN_ESC_SIGNAL    1000    // Minimum ESC signal, attach esc with this singal, should be not prop spinning.
 #define MOTOR_PIN_A       6 
 #define MOTOR_PIN_B       9       
-#define MOTOR_PIN_C       11       
-#define MOTOR_PIN_D       10     
+#define MOTOR_PIN_C       10       
+#define MOTOR_PIN_D       11     
 
 #define MIN_INPUT_THRUST  0
 #define MAX_INPUT_THRUST  1000

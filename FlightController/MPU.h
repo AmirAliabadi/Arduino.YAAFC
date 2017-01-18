@@ -11,13 +11,19 @@ uint16_t fifoCount;     // count of all bytes currently in FIFO
 uint8_t fifoBuffer[64]; // FIFO storage buffer
 VectorInt16 gyro;
 
+
+volatile bool mpuInterrupt = false; 
+void dmpDataReady() {
+    mpuInterrupt = true;
+}
+
 void init_mpu()
 {
     system_check &= ~(INIT_MPU_ENABLED | INIT_MPU_STABLE);
       
     mpu.initialize();
-    mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_500);
-    mpu.setTempFIFOEnabled(false);
+    //mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_500);
+    //mpu.setTempFIFOEnabled(false);
     //mpu.setFullScaleAccelRange(MPU6050_ACCEL_FS_2);    
 
 #ifdef DEBUG
@@ -38,10 +44,10 @@ void init_mpu()
       mpu.setXGyroOffset(eeprom_data.gx_offset);
       mpu.setYGyroOffset(eeprom_data.gy_offset);
       mpu.setZGyroOffset(eeprom_data.gz_offset);
-      
-      // turn on the DMP, now that it's ready
-      mpu.setDMPEnabled(true);
 
+      // turn on the DMP, now that it's ready
+      mpu.setDMPEnabled(true);      
+      
 ///////////////////////////////////////////////////////////////////
 //#define MPU6050_DLPF_BW_256         0x00
 //#define MPU6050_DLPF_BW_188         0x01
@@ -63,9 +69,16 @@ void init_mpu()
 * 6         | 5Hz       | 19.0ms  | 5Hz       | 18.6ms  | 1kHz
 * 7         | -- Reserved -- | -- Reserved -- | Reserved  
 */
-      mpu.setDLPFMode(MPU6050_DLPF_BW_188);
-      mpu.setRate(0x05);  // MPU6050_RA_SMPLRT_DIV,  1kHz / (1 + 0x01) = 500hz .  1kHz / 1 + 0x03 = 250hz
-      
+      //mpu.setDLPFMode(MPU6050_DLPF_BW_256);
+      //mpu.setRate(0x00);  // MPU6050_RA_SMPLRT_DIV :  1kHz / (1 + 0x01) = 500hz .  1kHz / (1 + 0x03) = 250hz
+
+#ifdef DEBUG
+      Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+#endif      
+      attachInterrupt(digitalPinToInterrupt(2), dmpDataReady, RISING);
+      // I don't understand this:
+      // The interrupt is happing at 60 - 122 Hz, no matter what I try
+     
       mpuIntStatus = mpu.getIntStatus();
 
       packetSize = mpu.dmpGetFIFOPacketSize();
@@ -92,6 +105,8 @@ void init_mpu()
 //
 void read_mpu_process()
 {
+  mpuInterrupt = false;
+  
   // get INT_STATUS byte
   mpuIntStatus = mpu.getIntStatus();
 
@@ -107,16 +122,14 @@ void read_mpu_process()
 #ifdef DEBUG
     Serial.println(F("#Foflw"));
 #endif
-
+  
   } // otherwise, check for DMP data ready interrupt (this should happen frequently)
   else if (mpuIntStatus & 0x02) {
     // wait for correct available data length, should be a VERY short wait
     while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();   // < 5us
 
     // read a packet from FIFO
-    digitalWrite(12, HIGH);          
     mpu.getFIFOBytes(fifoBuffer, packetSize);  // 1.7ms
-    digitalWrite(12, LOW);          
 
     // track FIFO count here in case there is > 1 packet available
     // (this lets us immediately read more without waiting for an interrupt)

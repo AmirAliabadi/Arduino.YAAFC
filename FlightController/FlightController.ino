@@ -46,6 +46,7 @@ void setup() {
   } 
 
   Wire.begin();
+  Wire.setClock(400000L);   // i2c at 400k Hz
   
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
@@ -61,6 +62,12 @@ void setup() {
 
 unsigned int throttle_tick_count = 0;
 void loop() {
+  if( mpuInterrupt ) {
+    digitalWrite(12, HIGH);           // this is at about 100 Hz
+    read_mpu_process();               // READ MPU,  2ms ???, yes 2ms to read the fifi buffer ????  
+    digitalWrite(12, LOW);
+  }
+
 
   pitch_input    = ppm_channels[1] ;  // Read ppm channel 1
   roll_input     = ppm_channels[2] ;  // Read ppm channel 2
@@ -71,6 +78,9 @@ void loop() {
   if( throttle_input < 1050 && yaw_input > 1950 && roll_input < 1050 && pitch_input < 1050 ) {
     disarm_esc();
   } else if ( throttle_input < 1050 && yaw_input < 1050 && roll_input < 1050 && pitch_input > 1950 ) {
+    throttle = 0;
+    pid_reset();
+    gyro.x = 0; gyro.y = 0; gyro.z = 0;
     arm_esc();
   }
 
@@ -79,9 +89,11 @@ void loop() {
   roll_input  = 1500 - roll_input ;
   yaw_input   = 1500 - yaw_input ;    
 
-  //digitalWrite(12, HIGH);
-  read_mpu_process();               // READ MPU,  2ms ???   
-  //digitalWrite(12, LOW);
+  if( mpuInterrupt ) {
+    digitalWrite(12, HIGH);           // this is at about 100 Hz
+    read_mpu_process();               // READ MPU,  2ms ???, yes 2ms to read the fifi buffer ????  
+    digitalWrite(12, LOW);
+  }
         
   if( system_check & INIT_ESC_ARMED ) {
 
@@ -96,14 +108,15 @@ void loop() {
     else if( throttle_input > 1800 && throttle <= 1990 && throttle_tick_count > 2 ) { throttle +=  10; throttle_tick_count=0; } // AA medium increase in throttle   
     else if( throttle_input < 1010 ) { throttle = MIN_ESC_CUTOFF;  }   
 
+    // Serial.println( throttle );
+
     // limit throttle between MIN_ESC_CUTOFF (keep motors running) to MAX_ESC_SIGNAL (typically 2000ms)
     if( throttle > MAX_ESC_SIGNAL ) throttle = MAX_ESC_SIGNAL;
     if( throttle < MIN_ESC_CUTOFF ) throttle = MIN_ESC_CUTOFF;
 
     // DO PID CALCUATIONS
     // We have the gyro data and the stick inputs
-
-    do_pid_compute();   // 200us
+    // do_pid_compute();   // 200us
 
     // READ BATTERY LEVEL
     // TODO:
@@ -114,6 +127,9 @@ void loop() {
     vb = throttle + p_pid_rate_out + r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc b (rear-right  -  CW)
     vc = throttle + p_pid_rate_out - r_pid_rate_out - y_pid_rate_out; //Calculate the pulse for esc c (rear-left   - CCW)
     vd = throttle - p_pid_rate_out - r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc d (front-left  -  CW)
+
+    //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( va ); Serial.print( "\t" ); Serial.print( vb ); Serial.print( "\t" ); Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );
+    //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( p_pid_rate_out ); Serial.print( "\t" ); Serial.print( r_pid_rate_out ); Serial.print( "\t" ); Serial.print( y_pid_rate_out ); Serial.print( "\t" ); Serial.println( vb );
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;
@@ -136,6 +152,18 @@ void loop() {
         
   }
 
+  if( mpuInterrupt ) {
+    digitalWrite(12, HIGH);           // this is at about 100 Hz
+    read_mpu_process();               // READ MPU,  2ms ???, yes 2ms to read the fifi buffer ????  
+    digitalWrite(12, LOW);
+  }
+
   update_motors();
+ 
+   if( mpuInterrupt ) {
+    digitalWrite(12, HIGH);           // this is at about 100 Hz
+    read_mpu_process();               // READ MPU,  2ms ???, yes 2ms to read the fifi buffer ????  
+    digitalWrite(12, LOW);
+  } 
 }
 

@@ -2,7 +2,6 @@
 
 #include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
 #include <Wire.h>
-#include "I2Cdev.h"
 
 //#define DEBUG
 #include "FlightController.h"
@@ -27,6 +26,7 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
+  Serial.begin(57600);
 
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
@@ -47,27 +47,23 @@ void setup() {
 
   Wire.begin();
   Wire.setClock(400000L);   // i2c at 400k Hz
-  
+
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
   #ifndef DEBUG
     wait_for_initial_inputs();
   #endif
 
-  init_esc();
   init_mpu();
+  calibrate_gyro();
+  init_esc();
   init_pid();
 
+  gyro_lpf = true;
 }
 
 unsigned int throttle_tick_count = 0;
 void loop() {
-  if( mpuInterrupt ) {
-    digitalWrite(12, HIGH);           // this is at about 100 Hz
-    read_mpu_process();               // READ MPU,  2ms ???, yes 2ms to read the fifi buffer ????  
-    digitalWrite(12, LOW);
-  }
-
 
   pitch_input    = ppm_channels[1] ;  // Read ppm channel 1
   roll_input     = ppm_channels[2] ;  // Read ppm channel 2
@@ -80,7 +76,9 @@ void loop() {
   } else if ( throttle_input < 1050 && yaw_input < 1050 && roll_input < 1050 && pitch_input > 1950 ) {
     throttle = 0;
     pid_reset();
-    gyro.x = 0; gyro.y = 0; gyro.z = 0;
+    gyro[0] = 0; 
+    gyro[1] = 0; 
+    gyro[2] = 0;
     arm_esc();
   }
 
@@ -89,11 +87,11 @@ void loop() {
   roll_input  = 1500 - roll_input ;
   yaw_input   = 1500 - yaw_input ;    
 
-  if( mpuInterrupt ) {
-    digitalWrite(12, HIGH);           // this is at about 100 Hz
-    read_mpu_process();               // READ MPU,  2ms ???, yes 2ms to read the fifi buffer ????  
-    digitalWrite(12, LOW);
-  }
+  digitalWrite(12, HIGH);           // 250Hz , this is at about 100 Hz with the i2c dev lib
+  read_mpu_process();               // READ MPU,  300uS ,  with the i2cdev DMP mode it was 2ms  
+                                    // 500us read with lpf and offsets
+  digitalWrite(12, LOW);
+  //Serial.print( gyro[0] ); Serial.print( "\t" ); Serial.print( gyro[1] ); Serial.print( "\t" ); Serial.println( gyro[2] );  
         
   if( system_check & INIT_ESC_ARMED ) {
 
@@ -116,7 +114,7 @@ void loop() {
 
     // DO PID CALCUATIONS
     // We have the gyro data and the stick inputs
-    // do_pid_compute();   // 200us
+    do_pid_compute();   // 200us
 
     // READ BATTERY LEVEL
     // TODO:
@@ -128,7 +126,7 @@ void loop() {
     vc = throttle + p_pid_rate_out - r_pid_rate_out - y_pid_rate_out; //Calculate the pulse for esc c (rear-left   - CCW)
     vd = throttle - p_pid_rate_out - r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc d (front-left  -  CW)
 
-    //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( va ); Serial.print( "\t" ); Serial.print( vb ); Serial.print( "\t" ); Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );
+    Serial.print( throttle ); Serial.print( "\t" ); Serial.print( va ); Serial.print( "\t" ); Serial.print( vb ); Serial.print( "\t" ); Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );
     //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( p_pid_rate_out ); Serial.print( "\t" ); Serial.print( r_pid_rate_out ); Serial.print( "\t" ); Serial.print( y_pid_rate_out ); Serial.print( "\t" ); Serial.println( vb );
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
@@ -152,18 +150,7 @@ void loop() {
         
   }
 
-  if( mpuInterrupt ) {
-    digitalWrite(12, HIGH);           // this is at about 100 Hz
-    read_mpu_process();               // READ MPU,  2ms ???, yes 2ms to read the fifi buffer ????  
-    digitalWrite(12, LOW);
-  }
-
   update_motors();
- 
-   if( mpuInterrupt ) {
-    digitalWrite(12, HIGH);           // this is at about 100 Hz
-    read_mpu_process();               // READ MPU,  2ms ???, yes 2ms to read the fifi buffer ????  
-    digitalWrite(12, LOW);
-  } 
+
 }
 

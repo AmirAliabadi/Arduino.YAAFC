@@ -13,7 +13,7 @@
 ////
 // X Setup
 /* 
-(pin 10)
+(pin 11)
 CW
 (D)         (A) CCW
   \         / (pin 6)
@@ -23,7 +23,7 @@ CW
   /         \
 (C)         (B) (pin 9)
 CCW           CW
-(pin 11)
+(pin 10)
 
 */
   

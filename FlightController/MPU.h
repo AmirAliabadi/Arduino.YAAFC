@@ -1,141 +1,106 @@
-#include "MPU6050_6Axis_MotionApps20.h"
-//#include "MPU6050_9Axis_MotionApps41.h"
-//#include "MPU6050.h" // not necessary if using MotionApps include file
+#define MPU6050_RA_CONFIG           0x1A
+#define MPU6050_RA_GYRO_CONFIG      0x1B
+#define MPU6050_RA_ACCEL_CONFIG     0x1C
 
-MPU6050 mpu;
+#define MPU6050_GYRO_FS_250         0x00
+#define MPU6050_GYRO_FS_500         0x01
+#define MPU6050_GYRO_FS_1000        0x02
+#define MPU6050_GYRO_FS_2000        0x03
 
-uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
-uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
-uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-uint16_t fifoCount;     // count of all bytes currently in FIFO
-uint8_t fifoBuffer[64]; // FIFO storage buffer
-VectorInt16 gyro;
+#define MPU6050_ACCEL_FS_2          0x00
+#define MPU6050_ACCEL_FS_4          0x01
+#define MPU6050_ACCEL_FS_8          0x02
+#define MPU6050_ACCEL_FS_16         0x03
 
+#define MPU6050_RA_GYRO_XOUT_H      0x43
+#define MPU6050_RA_GYRO_XOUT_L      0x44
+#define MPU6050_RA_GYRO_YOUT_H      0x45
+#define MPU6050_RA_GYRO_YOUT_L      0x46
+#define MPU6050_RA_GYRO_ZOUT_H      0x47
+#define MPU6050_RA_GYRO_ZOUT_L      0x48
 
-volatile bool mpuInterrupt = false; 
-void dmpDataReady() {
-    mpuInterrupt = true;
-}
+double gyro[3] = {0,0,0};
+double gyro_offsets[3] = {0,0,0};
 
-void init_mpu()
-{
+int gyro_address = 0x68;
+void init_mpu() {
     system_check &= ~(INIT_MPU_ENABLED | INIT_MPU_STABLE);
-      
-    mpu.initialize();
-    //mpu.setFullScaleGyroRange(MPU6050_GYRO_FS_500);
-    //mpu.setTempFIFOEnabled(false);
-    //mpu.setFullScaleAccelRange(MPU6050_ACCEL_FS_2);    
+  
+    Wire.beginTransmission(gyro_address);         //Start communication with the address found during search.
+    Wire.write(0x6B);                             //We want to write to the PWR_MGMT_1 register (6B hex)
+    Wire.write(0x00);                             //Set the register bits as 00000000 to activate the gyro
+    Wire.endTransmission();                       //End the transmission with the gyro.  
 
-#ifdef DEBUG
-    Serial.println(mpu.testConnection() ? F("#MPU6050 ok") : F("MPU6050 failed"));
-    Serial.println(F("#Init DMP"));
-#endif    
+    Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search.
+    Wire.write(0x1B);                                            //We want to write to the GYRO_CONFIG register (1B hex)
+    Wire.write(0x08);                                            //Set the register bits as 00001000 (500dps full scale)
+    Wire.endTransmission();                                      //End the transmission with the gyro  
 
-    devStatus = mpu.dmpInitialize();
+    Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search
+    Wire.write(0x1B);                                            //Start reading @ register 0x1B
+    Wire.endTransmission();                                      //End the transmission
+    Wire.requestFrom(gyro_address, 1);                           //Request 1 bytes from the gyro
+    
+    while(Wire.available() < 1);                                 //Wait until the 6 bytes are received
 
-    // make sure it worked (returns 0 if so)
-    if (devStatus == 0)
-    {
-      // Supply your own gyro offsets here, scaled for min sensitivity
-      
-      mpu.setXAccelOffset(eeprom_data.ax_offset);
-      mpu.setYAccelOffset(eeprom_data.ay_offset);
-      mpu.setZAccelOffset(eeprom_data.az_offset);
-      mpu.setXGyroOffset(eeprom_data.gx_offset);
-      mpu.setYGyroOffset(eeprom_data.gy_offset);
-      mpu.setZGyroOffset(eeprom_data.gz_offset);
+    if(Wire.read() != 0x08){                                     //Check if the value is 0x08
+      digitalWrite(13,HIGH);                                     //Turn on the warning led
+      while(1) {
+        delay(10);                                                //Stay in this loop for ever
+      }
+    } 
+    
+    Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search
+    Wire.write(0x1A);                                            //We want to write to the CONFIG register (1A hex)
+    Wire.write(0x03);                                            //Set the register bits as 00001000 (500dps full scale)
+                                                                 //Set both the gyro and the accelerometer at full scale
+    Wire.endTransmission();                                      //End the transmission with the gyro
 
-      // turn on the DMP, now that it's ready
-      mpu.setDMPEnabled(true);      
-      
-///////////////////////////////////////////////////////////////////
-//#define MPU6050_DLPF_BW_256         0x00
-//#define MPU6050_DLPF_BW_188         0x01
-//#define MPU6050_DLPF_BW_98          0x02
-//#define MPU6050_DLPF_BW_42          0x03
-//#define MPU6050_DLPF_BW_20          0x04
-//#define MPU6050_DLPF_BW_10          0x05
-//#define MPU6050_DLPF_BW_5           0x06
-/*
- * *         Accelerometer        | GyroScope
-* DLPF_CFG  | Bandwidth | Delay   | Bandwidth | Delay   | Sample Rate
-*  ---------+-----------+---------+-----------+---------+-------------
-* 0         | 260Hz     | 0ms     | 256Hz     | 0.98ms  | 8kHz
-* 1         | 184Hz     | 2.0ms   | 188Hz     | 1.9ms   | 1kHz
-* 2         | 94Hz      | 3.0ms   | 98Hz      | 2.8ms   | 1kHz
-* 3         | 44Hz      | 4.9ms   | 42Hz      | 4.8ms   | 1kHz
-* 4         | 21Hz      | 8.5ms   | 20Hz      | 8.3ms   | 1kHz
-* 5         | 10Hz      | 13.8ms  | 10Hz      | 13.4ms  | 1kHz
-* 6         | 5Hz       | 19.0ms  | 5Hz       | 18.6ms  | 1kHz
-* 7         | -- Reserved -- | -- Reserved -- | Reserved  
-*/
-      //mpu.setDLPFMode(MPU6050_DLPF_BW_256);
-      //mpu.setRate(0x00);  // MPU6050_RA_SMPLRT_DIV :  1kHz / (1 + 0x01) = 500hz .  1kHz / (1 + 0x03) = 250hz
-
-#ifdef DEBUG
-      Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
-#endif      
-      attachInterrupt(digitalPinToInterrupt(2), dmpDataReady, RISING);
-      // I don't understand this:
-      // The interrupt is happing at 60 - 122 Hz, no matter what I try
-     
-      mpuIntStatus = mpu.getIntStatus();
-
-      packetSize = mpu.dmpGetFIFOPacketSize();
-      
-      system_check |= INIT_MPU_ENABLED;
-      
-    }
-    else
-    {
-      // ERROR!
-      // 1 = initial memory load failed
-      // 2 = DMP configuration updates failed
-      // (if it's going to break, usually the code will be 1)
-#ifdef DEBUG      
-      Serial.print(F("#DMP Init fail: "));
-      Serial.println(devStatus);      
-#endif      
-    }
+    system_check |= INIT_MPU_ENABLED;            
 }
 
-
-////////////////////////////////////////////////////////////////
-// read_mpu
-//
-void read_mpu_process()
-{
-  mpuInterrupt = false;
+bool gyro_lpf = false;
+void read_mpu_process() {
+  Wire.beginTransmission(gyro_address);                        //Start communication with the gyro
+  Wire.write(0x43);                                            //Start reading @ register 43h and auto increment with every read
+  Wire.endTransmission();                                      //End the transmission
+  Wire.requestFrom(gyro_address,6);                            //Request 6 bytes from the gyro
   
-  // get INT_STATUS byte
-  mpuIntStatus = mpu.getIntStatus();
-
-  // get current FIFO count
-  fifoCount = mpu.getFIFOCount(); // 200us
-
-  // check for overflow (this should never happen unless our code is too inefficient)
-  if ((mpuIntStatus & 0x10) || fifoCount == 1024)
-  {
-    // reset so we can continue cleanly
-    mpu.resetFIFO();
-
-#ifdef DEBUG
-    Serial.println(F("#Foflw"));
-#endif
+  while(Wire.available() < 6);                                 //Wait until the 6 bytes are received
   
-  } // otherwise, check for DMP data ready interrupt (this should happen frequently)
-  else if (mpuIntStatus & 0x02) {
-    // wait for correct available data length, should be a VERY short wait
-    while (fifoCount < packetSize) fifoCount = mpu.getFIFOCount();   // < 5us
+  gyro[0] = Wire.read()<<8|Wire.read();                        //Read high and low part of the gyro data
+  gyro[1] = Wire.read()<<8|Wire.read();                        //Read high and low part of the gyro data
+  gyro[2] = Wire.read()<<8|Wire.read();                        //Read high and low part of the gyro data
 
-    // read a packet from FIFO
-    mpu.getFIFOBytes(fifoBuffer, packetSize);  // 1.7ms
+  if( system_check & INIT_MPU_STABLE ) {
+    gyro[0] = gyro[0] -  gyro_offsets[0] ;
+    gyro[1] = gyro[1] -  gyro_offsets[1] ;    
+    gyro[2] = gyro[2] -  gyro_offsets[2] ;    
+  }
 
-    // track FIFO count here in case there is > 1 packet available
-    // (this lets us immediately read more without waiting for an interrupt)
-    fifoCount -= packetSize;
-
-    mpu.dmpGetGyro(&gyro, fifoBuffer); // this is in degrees/s?  I'm certain deg/sec
-  
+  if( gyro_lpf ) {
+    // convert to degres/sec with a low pass filter
+    gyro[0] = (gyro[0] * 0.8) + ((gyro[0] / 57.14286) * 0.2);
+    gyro[1] = (gyro[1] * 0.8) + ((gyro[1] / 57.14286) * 0.2);
+    gyro[2] = (gyro[2] * 0.8) + ((gyro[2] / 57.14286) * 0.2);
   }
 }
+
+void calibrate_gyro() {
+  
+  for(int i=0; i<5000; i++ ) {
+    read_mpu_process();
+    for(int j=0; j<3; j++ ) {
+      gyro_offsets[j] += gyro[j] ;
+    }
+    delay(1);
+  }
+  
+  for(int i=0; i<3; i++ ) {
+    gyro_offsets[i] = gyro_offsets[i] / 5000;
+  }  
+  
+  system_check |= INIT_MPU_STABLE;
+}
+
+

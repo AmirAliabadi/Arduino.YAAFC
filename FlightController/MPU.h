@@ -22,6 +22,33 @@
 double gyro[3] = {0,0,0};
 double gyro_offsets[3] = {0,0,0};
 
+/* MPU 6050 Orientation:
+
+front left          front right  (CW)
+(CCW)
+           +------+
+           |( )   |--- Int
+           |      |
+           |      |--- sda
+           |      |--- scl
+           |( )   |--- gnd
+           +------+--- vcc
+
+back left          back right (CCW)
+(CW)
+
+Roll Right  = - Gryo
+Roll Left   = + Gyro
+Pitch Up    = - Gyro
+Pitch Down  = + Gyro
+Yaw Right   = + Gyro
+Yaw Left    = - Gyro
+ */
+
+byte PIT = 0;
+byte ROL = 1;
+byte YAW = 2;
+
 int gyro_address = 0x68;
 void init_mpu() {
     system_check &= ~(INIT_MPU_ENABLED | INIT_MPU_STABLE);
@@ -29,10 +56,12 @@ void init_mpu() {
     Wire.beginTransmission(gyro_address);         //Start communication with the address found during search.
     Wire.write(0x6B);                             //We want to write to the PWR_MGMT_1 register (6B hex)
     Wire.write(0x00);                             //Set the register bits as 00000000 to activate the gyro
-    Wire.endTransmission();                       //End the transmission with the gyro.  
+    Wire.endTransmission();                       //End the transmission with the gyro. 
+
+    delay(10);
 
     Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search.
-    Wire.write(0x1B);                                            //We want to write to the GYRO_CONFIG register (1B hex)
+    Wire.write(0x1B);                                            //We want to write to the GYRO_CONFIG register (0x1B)
     Wire.write(0x08);                                            //Set the register bits as 00001000 (500dps full scale)
     Wire.endTransmission();                                      //End the transmission with the gyro  
 
@@ -51,7 +80,7 @@ void init_mpu() {
     } 
     
     Wire.beginTransmission(gyro_address);                        //Start communication with the address found during search
-    Wire.write(0x1A);                                            //We want to write to the CONFIG register (1A hex)
+    Wire.write(0x1A);                                            //We want to write to the CONFIG register (0x1A)
     Wire.write(0x03);                                            //Set the register bits as 00001000 (500dps full scale)
                                                                  //Set both the gyro and the accelerometer at full scale
     Wire.endTransmission();                                      //End the transmission with the gyro
@@ -64,7 +93,7 @@ void read_mpu_process() {
   Wire.beginTransmission(gyro_address);                        //Start communication with the gyro
   Wire.write(0x43);                                            //Start reading @ register 43h and auto increment with every read
   Wire.endTransmission();                                      //End the transmission
-  Wire.requestFrom(gyro_address,6);                            //Request 6 bytes from the gyro
+  Wire.requestFrom(gyro_address, 6);                           //Request 6 bytes from the gyro
   
   while(Wire.available() < 6);                                 //Wait until the 6 bytes are received
   
@@ -75,7 +104,7 @@ void read_mpu_process() {
   if( system_check & INIT_MPU_STABLE ) {
     gyro[0] = gyro[0] -  gyro_offsets[0] ;
     gyro[1] = gyro[1] -  gyro_offsets[1] ;    
-    gyro[2] = gyro[2] -  gyro_offsets[2] ;    
+    gyro[2] = gyro[2] -  gyro_offsets[2] ; 
   }
 
   if( gyro_lpf ) {
@@ -88,7 +117,7 @@ void read_mpu_process() {
 
 void calibrate_gyro() {
   
-  for(int i=0; i<5000; i++ ) {
+  for(int i=0; i<2000; i++ ) {
     read_mpu_process();
     for(int j=0; j<3; j++ ) {
       gyro_offsets[j] += gyro[j] ;
@@ -97,7 +126,7 @@ void calibrate_gyro() {
   }
   
   for(int i=0; i<3; i++ ) {
-    gyro_offsets[i] = gyro_offsets[i] / 5000;
+    gyro_offsets[i] = gyro_offsets[i] / 2000;
   }  
   
   system_check |= INIT_MPU_STABLE;

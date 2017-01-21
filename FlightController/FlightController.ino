@@ -3,7 +3,7 @@
 #include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
 #include <Wire.h>
 
-//#define DEBUG
+#define DEBUG
 #include "FlightController.h"
 #include "PPM.h"
 #include "ESC.h"
@@ -26,12 +26,12 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-  Serial.begin(57600);
 
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
   system_check = INIT_CLEARED;
 
+/*
   EEPROM.get(0, eeprom_data);
   if(eeprom_data.id[0] != 'A' && eeprom_data.id[1] != 'A') {
 #ifdef DEBUG
@@ -44,6 +44,7 @@ void setup() {
       delay(100);      
     }
   } 
+*/  
 
   Wire.begin();
   Wire.setClock(400000L);   // i2c at 400k Hz
@@ -87,12 +88,11 @@ void loop() {
   roll_input  = 1500 - roll_input ;
   yaw_input   = 1500 - yaw_input ;    
 
-  digitalWrite(12, HIGH);           // 250Hz , this is at about 100 Hz with the i2c dev lib
+  digitalWrite(12, HIGH);           // 250Hz , this is at about 100 Hz with the i2cdevlib
   read_mpu_process();               // READ MPU,  300uS ,  with the i2cdev DMP mode it was 2ms  
                                     // 500us read with lpf and offsets
   digitalWrite(12, LOW);
-  //Serial.print( gyro[0] ); Serial.print( "\t" ); Serial.print( gyro[1] ); Serial.print( "\t" ); Serial.println( gyro[2] );  
-        
+
   if( system_check & INIT_ESC_ARMED ) {
 
     // slow down the throttle accum/decay behavior by only doing it every 10ms
@@ -106,7 +106,9 @@ void loop() {
     else if( throttle_input > 1800 && throttle <= 1990 && throttle_tick_count > 2 ) { throttle +=  10; throttle_tick_count=0; } // AA medium increase in throttle   
     else if( throttle_input < 1010 ) { throttle = MIN_ESC_CUTOFF;  }   
 
+#ifdef DEBUG
     // Serial.println( throttle );
+#endif    
 
     // limit throttle between MIN_ESC_CUTOFF (keep motors running) to MAX_ESC_SIGNAL (typically 2000ms)
     if( throttle > MAX_ESC_SIGNAL ) throttle = MAX_ESC_SIGNAL;
@@ -121,13 +123,15 @@ void loop() {
 
     // DO MOTOR MIX ALGORITHM
     // This is for an X setup
-    va = throttle - p_pid_rate_out + r_pid_rate_out - y_pid_rate_out; //Calculate the pulse for esc a (front-right - CCW)
-    vb = throttle + p_pid_rate_out + r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc b (rear-right  -  CW)
-    vc = throttle + p_pid_rate_out - r_pid_rate_out - y_pid_rate_out; //Calculate the pulse for esc c (rear-left   - CCW)
-    vd = throttle - p_pid_rate_out - r_pid_rate_out + y_pid_rate_out; //Calculate the pulse for esc d (front-left  -  CW)
+    va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; //Calculate the pulse for esc a (front-right - CCW)
+    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; //Calculate the pulse for esc b (rear-right  -  CW)
+    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; //Calculate the pulse for esc c (rear-left   - CCW)
+    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; //Calculate the pulse for esc d (front-left  -  CW)
 
+#ifdef DEBUG
     Serial.print( throttle ); Serial.print( "\t" ); Serial.print( va ); Serial.print( "\t" ); Serial.print( vb ); Serial.print( "\t" ); Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );
-    //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( p_pid_rate_out ); Serial.print( "\t" ); Serial.print( r_pid_rate_out ); Serial.print( "\t" ); Serial.print( y_pid_rate_out ); Serial.print( "\t" ); Serial.println( vb );
+    //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( pitch_pid_rate_out ); Serial.print( "\t" ); Serial.print( roll_pid_rate_out ); Serial.print( "\t" ); Serial.print( yaw_pid_rate_out ); Serial.print( "\t" ); Serial.println( vb );
+#endif
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;

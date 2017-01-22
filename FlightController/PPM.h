@@ -36,5 +36,15 @@ void wait_for_initial_inputs() {
     if( ppm_channels[3] > 1490 && ppm_channels[3]  < 1510 ) b = b | B00000100;
     if( ppm_channels[4] > 1490 && ppm_channels[4]  < 1510 ) b = b | B00001000;
   }
+
+  // wait for throttle to go to zero
+  while(1) {
+    if( ppm_channels[3] < 1050 ) break;
+  }
+
+  // wait for throttle to go to zero position
+  while(1) {
+    if( ppm_channels[3] > 1490 && ppm_channels[3]  < 1510 ) break;
+  }  
 }
 

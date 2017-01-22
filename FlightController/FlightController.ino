@@ -51,9 +51,8 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
-  #ifndef DEBUG
-    wait_for_initial_inputs();
-  #endif
+  while( !ppm_sync ) ; // wait for ppm sync
+  wait_for_initial_inputs(); // wait for all stick to be neutral
 
   init_mpu();
   calibrate_gyro();
@@ -63,6 +62,7 @@ void setup() {
   gyro_lpf = true;
 }
 
+unsigned int guesture_count = 0;
 unsigned int throttle_tick_count = 0;
 void loop() {
 
@@ -71,24 +71,46 @@ void loop() {
   throttle_input = ppm_channels[3] ;  // Read ppm channel 3
   yaw_input      = ppm_channels[4] ;  // Read ppm channel 4
 
-  // Look for ESC Arm/Disarm gestures
-  if( throttle_input < 1050 && yaw_input > 1950 && roll_input < 1050 && pitch_input < 1050 ) {
-    disarm_esc();
-  } else if ( throttle_input < 1050 && yaw_input < 1050 && roll_input < 1050 && pitch_input > 1950 ) {
-    throttle = 0;
-    pid_reset();
-    gyro[0] = 0; 
-    gyro[1] = 0; 
-    gyro[2] = 0;
-    arm_esc();
+  // 20us of deadband
+  if( pitch_input >= 1490 && pitch_input <= 1510 ) pitch_input = 1500;
+  if( roll_input >= 1490 && roll_input <= 1510 ) roll_input = 1500;  
+  if( throttle_input >= 1490 && throttle_input <= 1510 ) throttle_input = 1500;  
+  if( yaw_input >= 1490 && yaw_input <= 1510 ) yaw_input = 1500;  
+
+  ////////////////////////////////////////////////////////////////////
+  // Simple Arm/Disarm.  Hold throttle at lowest position for 500ms
+  if( throttle <= MIN_ESC_CUTOFF ) {
+    // Look for ESC Arm/Disarm gestures
+    if( throttle_input < 1050 ) {
+        guesture_count ++;
+    } else {
+      guesture_count = 0;
+    }
+
+    if( guesture_count >= 500 ) {
+      if( system_check & INIT_ESC_ARMED ) {
+        disarm_esc();
+      } else {
+        throttle = 0;
+        pid_reset();
+        gyro[0] = 0; 
+        gyro[1] = 0; 
+        gyro[2] = 0;
+        arm_esc();      
+      }    
+      guesture_count = 0;
+    }
   }
+  // Simple Arm/Disarm. 
+  ////////////////////////////////////////////////////////////////////
 
   // adjust so 1500 = Zero input
-  pitch_input = 1500 - pitch_input ;
-  roll_input  = 1500 - roll_input ;
-  yaw_input   = 1500 - yaw_input ;    
+  //throttle_input = 1500 - throttle_input;
+  pitch_input    = 1500 - pitch_input ;
+  roll_input     = 1500 - roll_input ;
+  yaw_input      = 1500 - yaw_input ;   
 
-  digitalWrite(12, HIGH);           // 250Hz , this is at about 100 Hz with the i2cdevlib
+  digitalWrite(12, HIGH);           // 250Hz , this is at about 100 Hz with the i2cdevlib with DMP enabled.
   read_mpu_process();               // READ MPU,  300uS ,  with the i2cdev DMP mode it was 2ms  
                                     // 500us read with lpf and offsets
   digitalWrite(12, LOW);
@@ -106,10 +128,6 @@ void loop() {
     else if( throttle_input > 1800 && throttle <= 1990 && throttle_tick_count > 2 ) { throttle +=  10; throttle_tick_count=0; } // AA medium increase in throttle   
     else if( throttle_input < 1010 ) { throttle = MIN_ESC_CUTOFF;  }   
 
-#ifdef DEBUG
-    // Serial.println( throttle );
-#endif    
-
     // limit throttle between MIN_ESC_CUTOFF (keep motors running) to MAX_ESC_SIGNAL (typically 2000ms)
     if( throttle > MAX_ESC_SIGNAL ) throttle = MAX_ESC_SIGNAL;
     if( throttle < MIN_ESC_CUTOFF ) throttle = MIN_ESC_CUTOFF;
@@ -121,15 +139,14 @@ void loop() {
     // READ BATTERY LEVEL
     // TODO:
 
-    // DO MOTOR MIX ALGORITHM
-    // This is for an X setup
-    va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; //Calculate the pulse for esc a (front-right - CCW)
-    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; //Calculate the pulse for esc b (rear-right  -  CW)
-    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; //Calculate the pulse for esc c (rear-left   - CCW)
-    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; //Calculate the pulse for esc d (front-left  -  CW)
+    // DO MOTOR MIX ALGORITHM : X Setup
+    va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
+    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
+    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
+    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
 
 #ifdef DEBUG
-    Serial.print( throttle ); Serial.print( "\t" ); Serial.print( va ); Serial.print( "\t" ); Serial.print( vb ); Serial.print( "\t" ); Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );
+    //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( va ); Serial.print( "\t" ); Serial.print( vb ); Serial.print( "\t" ); Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );
     //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( pitch_pid_rate_out ); Serial.print( "\t" ); Serial.print( roll_pid_rate_out ); Serial.print( "\t" ); Serial.print( yaw_pid_rate_out ); Serial.print( "\t" ); Serial.println( vb );
 #endif
 

@@ -24,8 +24,8 @@ double gyro_offsets[3] = {0,0,0};
 
 /* MPU 6050 Orientation:
 
-front left          front right  (CW)
-(CCW)
+front left          front right  (CCW)
+(CW)
            +------+
            |( )   |--- Int
            |      |
@@ -34,8 +34,8 @@ front left          front right  (CW)
            |( )   |--- gnd
            +------+--- vcc
 
-back left          back right (CCW)
-(CW)
+back left          back right (CW)
+(CCW)
 
 Roll Right  = - Gryo
 Roll Left   = + Gyro
@@ -43,7 +43,7 @@ Pitch Up    = - Gyro
 Pitch Down  = + Gyro
 Yaw Right   = + Gyro
 Yaw Left    = - Gyro
- */
+*/
 
 byte PIT = 0;
 byte ROL = 1;
@@ -75,7 +75,7 @@ void init_mpu() {
     if(Wire.read() != 0x08){                                     //Check if the value is 0x08
       digitalWrite(13,HIGH);                                     //Turn on the warning led
       while(1) {
-        delay(10);                                                //Stay in this loop for ever
+        delay(10);                                                //Stay in this loop forever
       }
     } 
     

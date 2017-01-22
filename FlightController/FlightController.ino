@@ -18,6 +18,7 @@ int yaw_input = 0;
 
 // using a center stick throttle
 // throttle value accumulates or decays bases on throttle_input
+// throttle is a value of 1000 to 2000
 int throttle = MIN_ESC_SIGNAL;
 
 #include "PID.h"
@@ -26,7 +27,8 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-
+  Serial.begin(57600);
+  
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
   system_check = INIT_CLEARED;
@@ -63,7 +65,8 @@ void setup() {
 }
 
 unsigned int guesture_count = 0;
-unsigned int throttle_tick_count = 0;
+float throttle_input_gain = 0.0;
+float f_throttle = MIN_ESC_SIGNAL;
 void loop() {
 
   pitch_input    = ppm_channels[1] ;  // Read ppm channel 1
@@ -105,35 +108,32 @@ void loop() {
   ////////////////////////////////////////////////////////////////////
 
   // adjust so 1500 = Zero input
-  //throttle_input = 1500 - throttle_input;
-  pitch_input    = 1500 - pitch_input ;
-  roll_input     = 1500 - roll_input ;
-  yaw_input      = 1500 - yaw_input ;   
+  throttle_input = throttle_input - 1500 ;
+  pitch_input    = pitch_input - 1500 ;
+  roll_input     = roll_input - 1500 ;
+  yaw_input      = yaw_input - 1500 ;   
 
-  digitalWrite(12, HIGH);           // 250Hz , this is at about 100 Hz with the i2cdevlib with DMP enabled.
-  read_mpu_process();               // READ MPU,  300uS ,  with the i2cdev DMP mode it was 2ms  
+  digitalWrite(12,HIGH);
+                                    // 250Hz with no i2cdevlib and no DMP  
+                                    // With i2cdevlib and DMP enabled this is about 100 Hz
+  read_mpu_process();               // Just the gyro read: 300uS 
                                     // 500us read with lpf and offsets
-  digitalWrite(12, LOW);
+                                    // With Accel reads, 800ms
+  digitalWrite(12,LOW);
+
+  throttle_input_gain = throttle_input / 600.0;
 
   if( system_check & INIT_ESC_ARMED ) {
 
-    // slow down the throttle accum/decay behavior by only doing it every 10ms
-    throttle_tick_count ++;
+    throttle = ( f_throttle += throttle_input_gain );
 
-    // increase/decrease throttle based on throttle_input
-         if( throttle_input < 1100 && throttle >= 1400 && throttle_tick_count > 2 ) { throttle -=  10; throttle_tick_count=0; } // AA fast decrease in throttle
-    else if( throttle_input < 1200 && throttle >= 1010 && throttle_tick_count > 2 ) { throttle -=   5; throttle_tick_count=0; } // AA medium decrease in throttle
-    else if( throttle_input < 1400 && throttle >= 1001 && throttle_tick_count > 2 ) { throttle -=   1; throttle_tick_count=0; } // AA slow decrease in throttle   
-    else if( throttle_input > 1600 && throttle <= 1999 && throttle_tick_count > 2 ) { throttle +=   1; throttle_tick_count=0; } // AA slow increase in throttle
-    else if( throttle_input > 1800 && throttle <= 1990 && throttle_tick_count > 2 ) { throttle +=  10; throttle_tick_count=0; } // AA medium increase in throttle   
-    else if( throttle_input < 1010 ) { throttle = MIN_ESC_CUTOFF;  }   
+    if( f_throttle > MAX_ESC_SIGNAL ) f_throttle = MAX_ESC_SIGNAL;
+    if( f_throttle < MIN_ESC_CUTOFF ) f_throttle = MIN_ESC_CUTOFF;    
 
-    // limit throttle between MIN_ESC_CUTOFF (keep motors running) to MAX_ESC_SIGNAL (typically 2000ms)
     if( throttle > MAX_ESC_SIGNAL ) throttle = MAX_ESC_SIGNAL;
     if( throttle < MIN_ESC_CUTOFF ) throttle = MIN_ESC_CUTOFF;
 
     // DO PID CALCUATIONS
-    // We have the gyro data and the stick inputs
     do_pid_compute();   // 200us
 
     // READ BATTERY LEVEL
@@ -141,14 +141,14 @@ void loop() {
 
     // DO MOTOR MIX ALGORITHM : X Setup
     va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
-    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
+    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
     vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
-    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
+    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
 
-#ifdef DEBUG
-    //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( va ); Serial.print( "\t" ); Serial.print( vb ); Serial.print( "\t" ); Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );
-    //Serial.print( throttle ); Serial.print( "\t" ); Serial.print( pitch_pid_rate_out ); Serial.print( "\t" ); Serial.print( roll_pid_rate_out ); Serial.print( "\t" ); Serial.print( yaw_pid_rate_out ); Serial.print( "\t" ); Serial.println( vb );
-#endif
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vb );
+    // Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd ); 
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd ); 
+    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc ); 
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;

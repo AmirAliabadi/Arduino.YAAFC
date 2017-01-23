@@ -1,6 +1,12 @@
+#define MPU6050_RA_PWR_MGMT_1       0x6B
+
+#define MPU6050_RA_SMPLRT_DIV       0x19
+
 #define MPU6050_RA_CONFIG           0x1A
 #define MPU6050_RA_GYRO_CONFIG      0x1B
 #define MPU6050_RA_ACCEL_CONFIG     0x1C
+
+#define MPU6050_RA_I2C_MST_CTRL     0x24
 
 #define MPU6050_GYRO_FS_250         0x00
 #define MPU6050_GYRO_FS_500         0x01
@@ -34,6 +40,7 @@ double gyro[3] = {0,0,0};
 double accl[3] = {0,0,0};
 double gyro_read[3] = {0,0,0};
 double accl_read[3] = {0,0,0};
+double temp_read;
 double gyro_offsets[3] = {0,0,0};
 
 /* MPU 6050 Orientation:
@@ -67,38 +74,43 @@ int mpu_address = 0x68;
 void init_mpu() {
     system_check &= ~(INIT_MPU_ENABLED | INIT_MPU_STABLE);
   
-    Wire.beginTransmission(mpu_address);         //Start communication with the address found during search.
+    Wire.beginTransmission(mpu_address);          
     Wire.write(0x6B);                             //We want to write to the PWR_MGMT_1 register (6B hex)
     Wire.write(0x00);                             //Set the register bits as 00000000 to activate the gyro
-    Wire.endTransmission();                       //End the transmission with the gyro. 
-
-    delay(10);
+    Wire.endTransmission();                       
 
     Wire.beginTransmission(mpu_address);                        //Start communication with the address found during search.
-    Wire.write(0x1B);                                            //We want to write to the GYRO_CONFIG register (0x1B)
+    Wire.write(0x1B);                                            //We want to write to the GYRO_CONFIG register (1B hex)
     Wire.write(0x08);                                            //Set the register bits as 00001000 (500dps full scale)
-    Wire.endTransmission();                                      //End the transmission with the gyro  
+    Wire.endTransmission();                                      //End the transmission with the gyro    
 
     Wire.beginTransmission(mpu_address);                        //Start communication with the address found during search
-    Wire.write(0x1B);                                            //Start reading @ register 0x1B
-    Wire.endTransmission();                                      //End the transmission
-    Wire.requestFrom(mpu_address, 1);                           //Request 1 bytes from the gyro
-    
-    while(Wire.available() < 1);                                 //Wait until the 6 bytes are received
-
-    if(Wire.read() != 0x08){                                     //Check if the value is 0x08
-      digitalWrite(13,HIGH);                                     //Turn on the warning led
-      while(1) {
-        delay(10);                                                //Stay in this loop forever
-      }
-    } 
-    
-    Wire.beginTransmission(mpu_address);                        //Start communication with the address found during search
-    Wire.write(0x1A);                                            //We want to write to the CONFIG register (0x1A)
+    Wire.write(0x1A);                                            //We want to write to the GYRO_CONFIG register (1B hex)
     Wire.write(0x03);                                            //Set the register bits as 00001000 (500dps full scale)
-                                                                 //Set both the gyro and the accelerometer at full scale
-    Wire.endTransmission();                                      //End the transmission with the gyro
+    Wire.endTransmission();                                      //End the transmission with the gyro   
 
+/*
+    Wire.beginTransmission(mpu_address);          
+    Wire.write(0x24);                             //We want to write to the MPU6050_RA_I2C_MST_CTRL register (6B hex)
+    Wire.write(13);                               //13 400kHz 
+    Wire.endTransmission();                       
+
+    Wire.beginTransmission(mpu_address);          
+    Wire.write(0x1A);                             // MPU6050_RA_CONFIG 
+    Wire.write(B00000000);                        // No DLPF, No External Sync
+    //Wire.write(B00000001);                      // DLPF, No External Sync
+    Wire.endTransmission();                       
+
+    Wire.beginTransmission(mpu_address);              
+    Wire.write(0x1B);                            // Set MPU6050_RA_GYRO_CONFIG 
+    Wire.write(B00001000);                       // full scale, no self test           
+    Wire.endTransmission();                       
+
+    Wire.beginTransmission(mpu_address);          
+    Wire.write(0x1C);                            // Set MPU6050_RA_ACCEL_CONFIG 
+    Wire.write(B00001000);                       // full scale, no self test       
+    Wire.endTransmission();    
+*/
     system_check |= INIT_MPU_ENABLED;            
 }
 
@@ -125,16 +137,40 @@ void read_mpu_process() {
   
   while(Wire.available() < 6);                  //Wait until the 6 bytes are received
   
-  accl_read[0] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
-  accl_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
-  accl_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
-// accl read    
+  accl_read[0] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
+  accl_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
+  accl_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
+// accl read 
 
+/*
+  Wire.beginTransmission(mpu_address);      
+  Wire.write(0x3B);                         
+  Wire.endTransmission();                   
+  Wire.requestFrom(mpu_address, 14);         
+
+  while(Wire.available() < 14);              
+
+  accl_read[0] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
+  accl_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
+  accl_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
+
+  temp_read    = Wire.read()<<8|Wire.read();    //Read high and low part of the temp data
+
+  gyro_read[0] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
+  gyro_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
+  gyro_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data 
+
+  Serial.println( (temp_read/340.0 + 36.53)*1.8 + 32.0 ); 
+  
+*/
+  
   if( system_check & INIT_MPU_STABLE ) {
     gyro_read[0] = gyro_read[0] -  gyro_offsets[0] ;
     gyro_read[1] = gyro_read[1] -  gyro_offsets[1] ;    
     gyro_read[2] = gyro_read[2] -  gyro_offsets[2] ; 
   }
+
+  Serial.print(gyro_read[0]); Serial.print("\t");Serial.print(gyro_read[1]); Serial.print("\t");Serial.println(gyro_read[2]);   
 
   if( gyro_lpf ) {
     // convert to degres/sec with a low pass filter

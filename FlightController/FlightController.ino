@@ -53,8 +53,8 @@ void setup() {
 
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
-  while( !ppm_sync ) ; // wait for ppm sync
-  wait_for_initial_inputs(); // wait for all stick to be neutral
+  //while( !ppm_sync ) ; // wait for ppm sync
+  //wait_for_initial_inputs(); // wait for all stick to be neutral
 
   init_mpu();
   calibrate_gyro();
@@ -118,7 +118,7 @@ void loop() {
                                     // With i2cdevlib and DMP enabled this is about 100 Hz
   read_mpu_process();               // Just the gyro read: 300uS 
                                     // 500us read with lpf and offsets
-                                    // With Accel reads, 800ms
+                                    // 800ms read with Accel 
   digitalWrite(12,LOW);
 
   throttle_input_gain = throttle_input / 600.0;

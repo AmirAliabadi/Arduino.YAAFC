@@ -27,7 +27,6 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-  Serial.begin(57600);
   
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
@@ -57,11 +56,13 @@ void setup() {
   //wait_for_initial_inputs(); // wait for all stick to be neutral
 
   init_mpu();
+  delay(10);
   calibrate_gyro();
   init_esc();
   init_pid();
 
   gyro_lpf = true;
+
 }
 
 unsigned int guesture_count = 0;

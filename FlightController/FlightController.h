@@ -15,13 +15,13 @@
 /* 
 (pin 11)
 CW
-(A)         (B) CCW
+(D)         (A) CCW
   \         / (pin 6)
    \       /
      [   ]
    /       \
   /         \
-(D)         (C) (pin 9)
+(C)         (B) (pin 9)
 CCW           CW
 (pin 10)
 

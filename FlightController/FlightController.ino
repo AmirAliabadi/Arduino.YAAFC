@@ -27,7 +27,8 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-  
+  Serial.begin(57600);
+    
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
   system_check = INIT_CLEARED;
@@ -118,9 +119,11 @@ void loop() {
                                     // 250Hz with no i2cdevlib and no DMP  
                                     // With i2cdevlib and DMP enabled this is about 100 Hz
   read_mpu_process();               // Just the gyro read: 300uS 
-                                    // 500us read with lpf and offsets
-                                    // 800ms read with Accel 
+                                    // 500us with lpf and offsets
+                                    // 800ms with Accelerometer and Gryo reads 
   digitalWrite(12,LOW);
+
+  Serial.println( gyro[0] );
 
   throttle_input_gain = throttle_input / 600.0;
 
@@ -146,10 +149,12 @@ void loop() {
     vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
     vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
 
-    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vb );
-    // Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd ); 
-    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd ); 
-    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc ); 
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd );  // pitch - nose up, should increase
+    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );  // pitch - nose up, should decrease
+    
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vb );  // roll - right, should decrease
+    // Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );  // roll - right, should increase
+
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;

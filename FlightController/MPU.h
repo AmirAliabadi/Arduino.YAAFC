@@ -74,31 +74,36 @@ int mpu_address = 0x68;
 void init_mpu() {
     system_check &= ~(INIT_MPU_ENABLED | INIT_MPU_STABLE);
 
-    Wire.beginTransmission(mpu_address);          
-    Wire.write(0x24);                             // We want to write to the MPU6050_RA_I2C_MST_CTRL register
-    Wire.write(13);                               // 13 400kHz 
-    Wire.endTransmission();                       
-
-    Wire.beginTransmission(mpu_address);          
-    Wire.write(0x1A);                           // MPU6050_RA_CONFIG 
-    Wire.write(B00000000);                      // No DLPF, No External Sync
-    // This works, and will apply a LPF but it will be on both the Gyro and Accelerometer
-    // I may come back and use this but for now I will do a LPF within the firmware as part of the mpu read process
-    // Note: In code the read + lpf is about 520us, when doing the lpf on the chip its about 320us
-  //Wire.write(B00000001);                      // DLPF, Accel @ 184hz and Gyro @ 188hz. No External Sync
-  //Wire.write(B00000010);                      // DLPF, Accel @ 94hz and Gyro @ 98hz. No External Sync
-  //Wire.write(B00000110);                      // DLPF, Accel @ 5hz and Gyro @ 5hz. No External Sync
-    Wire.endTransmission();                       
+    Wire.beginTransmission(mpu_address);                        
+    Wire.write(0x6B);                                            // PWR_MGMT_1 register 
+    Wire.write(B00001000);                                       // Internal 8mhz Clock, Temperature Disabled
+    Wire.endTransmission();                                      
+        
+//    Wire.beginTransmission(mpu_address);          
+//    Wire.write(0x24);                             // MPU6050_RA_I2C_MST_CTRL register
+//    Wire.write(B00001101);                        // MULT_MST_EN = 0, WAIT_FOR_ES = 0, SLV_3_FIFO_EN = 0, I2C_MST_P_NSR = 0, I2C_MST_CLK = 13 : 400KHZ
+//    Wire.endTransmission();                       
 
     Wire.beginTransmission(mpu_address);              
     Wire.write(0x1B);                            // Set MPU6050_RA_GYRO_CONFIG 
-    Wire.write(B00011000);                       // full scale, no self test           
+    Wire.write(B00001000);                       // FS_SEL,  +/- 500 */S           
     Wire.endTransmission();                       
 
     Wire.beginTransmission(mpu_address);          
     Wire.write(0x1C);                            // Set MPU6050_RA_ACCEL_CONFIG 
-    Wire.write(B00011000);                       // full scale, no self test       
+    Wire.write(B00001000);                       // AFS_SEL, +/- 4g       
     Wire.endTransmission();    
+
+    Wire.beginTransmission(mpu_address);          
+    Wire.write(0x1A);                           // MPU6050_RA_CONFIG 
+  //Wire.write(B00000000);                      // No DLPF, No External Sync
+  //Wire.write(B00000001);                      // DLPF, Accel @ 184hz and Gyro @ 188hz. No External Sync
+  //Wire.write(B00000010);                      // DLPF, Accel @  94hz and Gyro @  98hz. No External Sync
+    Wire.write(B00000011);                      // DLPF, Accel @  44hz and Gyro @  42hz. No External Sync
+  //Wire.write(B00000100);                      // DLPF, Accel @  21hz and Gyro @  20hz. No External Sync
+  //Wire.write(B00000101);                      // DLPF, Accel @  10hz and Gyro @  10hz. No External Sync    
+  //Wire.write(B00000110);                      // DLPF, Accel @   5hz and Gyro @   5hz. No External Sync
+    Wire.endTransmission();      
 
     system_check |= INIT_MPU_ENABLED;            
 }
@@ -138,7 +143,12 @@ void read_mpu_process() {
   gyro_read[0] = gyro_read[0] - gyro_offsets[0] ;
   gyro_read[1] = gyro_read[1] - gyro_offsets[1] ;    
   gyro_read[2] = gyro_read[2] - gyro_offsets[2] ; 
- 
+
+  gyro[0] = (gyro_read[0] / 57.14286);
+  gyro[1] = (gyro_read[1] / 57.14286);
+  gyro[2] = (gyro_read[2] / 57.14286);  
+
+/* 
   if( gyro_lpf ) {
     // convert to degres/sec with a low pass filter
     gyro[0] = (gyro[0] * 0.8) + ((gyro_read[0] / 57.14286) * 0.2);
@@ -150,6 +160,8 @@ void read_mpu_process() {
     gyro[1] = gyro_read[1];
     gyro[2] = gyro_read[2];
   }
+*/
+  
 }
 
 void calibrate_gyro() {

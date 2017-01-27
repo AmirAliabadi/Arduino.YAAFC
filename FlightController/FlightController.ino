@@ -61,9 +61,6 @@ void setup() {
   calibrate_gyro();
   init_esc();
   init_pid();
-
-  gyro_lpf = true;
-
 }
 
 unsigned int guesture_count = 0;
@@ -71,10 +68,10 @@ float throttle_input_gain = 0.0;
 float f_throttle = MIN_ESC_SIGNAL;
 void loop() {
 
-  pitch_input    = ppm_channels[1] ;  // Read ppm channel 1
-  roll_input     = ppm_channels[2] ;  // Read ppm channel 2
-  throttle_input = ppm_channels[3] ;  // Read ppm channel 3
-  yaw_input      = ppm_channels[4] ;  // Read ppm channel 4
+  roll_input      = ppm_channels[1] ;  // Read ppm channel 1
+  pitch_input     = ppm_channels[2] ;  // Read ppm channel 2
+  throttle_input  = ppm_channels[3] ;  // Read ppm channel 3
+  yaw_input       = ppm_channels[4] ;  // Read ppm channel 4
 
   // 20us of deadband
   if( pitch_input >= 1490 && pitch_input <= 1510 ) pitch_input = 1500;
@@ -110,9 +107,9 @@ void loop() {
   ////////////////////////////////////////////////////////////////////
 
   // adjust so 1500 = Zero input
-  throttle_input = throttle_input - 1500 ;
-  pitch_input    = pitch_input - 1500 ;
-  roll_input     = roll_input - 1500 ;
+  throttle_input = (throttle_input - 1500) ;
+  pitch_input    = (pitch_input - 1500) * -1.0;
+  roll_input     = (roll_input - 1500) ;
   yaw_input      = yaw_input - 1500 ;   
 
   digitalWrite(12,HIGH);
@@ -123,7 +120,7 @@ void loop() {
                                     // 800ms with Accelerometer and Gryo reads 
   digitalWrite(12,LOW);
 
-  Serial.println( gyro[0] );
+  //Serial.println( gyro[0] );
 
   throttle_input_gain = throttle_input / 600.0;
 
@@ -149,8 +146,12 @@ void loop() {
     vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
     vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
 
-    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd );  // pitch - nose up, should increase
-    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );  // pitch - nose up, should decrease
+    //Serial.print( pitch_pid_rate_out );
+    //Serial.print("\t");
+    //Serial.println( pitch_pid_rate_out );
+
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd );  // pitch - up, should increase
+    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );  // pitch - up, should decrease
     
     // Serial.print( va ); Serial.print( "\t" ); Serial.println( vb );  // roll - right, should decrease
     // Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );  // roll - right, should increase

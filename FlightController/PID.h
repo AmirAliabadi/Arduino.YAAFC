@@ -88,11 +88,11 @@ void do_pid_compute()
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // COMPUTE ROLL PID
     pid_error = gyro[ROL] - roll_input;     
-    roll_pid_term[0] = r_pid_gains[0] * pid_error;                     // pTerm;    
-    roll_pid_term[2] = r_pid_gains[2] * ( pid_error - r_last_error );  // dTerm = dGain * (current error - last_error)    
-    r_last_error = pid_error;                                       // update roll last_error for next time   
+    roll_pid_term[0] = r_pid_gains[0] * pid_error;                      // pTerm;    
+    roll_pid_term[2] = r_pid_gains[2] * ( pid_error - r_last_error );   // dTerm = dGain * (current error - last_error)    
+    r_last_error = pid_error;                                           // update roll last_error for next time   
 
-    roll_pid_term[1] += r_pid_gains[1] * pid_error;                    //  integrate the iTerm
+    roll_pid_term[1] += r_pid_gains[1] * pid_error;                     //  integrate the iTerm
     if( roll_pid_term[1] >  400.0 ) roll_pid_term[1] =  400.0;
     if( roll_pid_term[1] < -400.0 ) roll_pid_term[1] = -400.0;    
     

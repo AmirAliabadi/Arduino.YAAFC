@@ -96,13 +96,13 @@ void init_mpu() {
 
     Wire.beginTransmission(mpu_address);          
     Wire.write(0x1A);                           // MPU6050_RA_CONFIG 
-  //Wire.write(B00000000);                      // No DLPF, No External Sync
-  //Wire.write(B00000001);                      // DLPF, Accel @ 184hz and Gyro @ 188hz. No External Sync
-  //Wire.write(B00000010);                      // DLPF, Accel @  94hz and Gyro @  98hz. No External Sync
-    Wire.write(B00000011);                      // DLPF, Accel @  44hz and Gyro @  42hz. No External Sync
-  //Wire.write(B00000100);                      // DLPF, Accel @  21hz and Gyro @  20hz. No External Sync
-  //Wire.write(B00000101);                      // DLPF, Accel @  10hz and Gyro @  10hz. No External Sync    
-  //Wire.write(B00000110);                      // DLPF, Accel @   5hz and Gyro @   5hz. No External Sync
+  //Wire.write(B00000000);                      // 0 No DLPF, No External Sync
+  //Wire.write(B00000001);                      // 1 DLPF, Accel @ 184hz and Gyro @ 188hz. No External Sync
+  //Wire.write(B00000010);                      // 2 DLPF, Accel @  94hz and Gyro @  98hz. No External Sync
+    Wire.write(B00000011);                      // 3 DLPF, Accel @  44hz and Gyro @  42hz. No External Sync
+  //Wire.write(B00000100);                      // 4 DLPF, Accel @  21hz and Gyro @  20hz. No External Sync
+  //Wire.write(B00000101);                      // 5 DLPF, Accel @  10hz and Gyro @  10hz. No External Sync    
+  //Wire.write(B00000110);                      // 6 DLPF, Accel @   5hz and Gyro @   5hz. No External Sync
     Wire.endTransmission();      
 
     system_check |= INIT_MPU_ENABLED;            
@@ -144,9 +144,16 @@ void read_mpu_process() {
   gyro_read[1] = gyro_read[1] - gyro_offsets[1] ;    
   gyro_read[2] = gyro_read[2] - gyro_offsets[2] ; 
 
-  gyro[0] = (gyro_read[0] / 57.14286);
-  gyro[1] = (gyro_read[1] / 57.14286);
-  gyro[2] = (gyro_read[2] / 57.14286);  
+  if( system_check & INIT_ESC_ARMED ) {
+    // not sure why but this helps even when the 6050 has the DLPF enabled.
+    gyro[0] = (gyro[0] * 0.8) + ((gyro_read[0] / 57.14286) * 0.2);
+    gyro[1] = (gyro[1] * 0.8) + ((gyro_read[1] / 57.14286) * 0.2);
+    gyro[2] = (gyro[2] * 0.8) + ((gyro_read[2] / 57.14286) * 0.2);   
+  } else {
+    gyro[0] = (gyro_read[0] / 57.14286);
+    gyro[1] = (gyro_read[1] / 57.14286);
+    gyro[2] = (gyro_read[2] / 57.14286);      
+  }
 
 /* 
   if( gyro_lpf ) {

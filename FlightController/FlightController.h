@@ -14,14 +14,14 @@
 // X Setup
 /* 
 (pin 11)
-CW
-(D)         (A) CCW
+LF - CW
+(D)         (A) RF - CCW
   \         / (pin 6)
    \       /
      [   ]
    /       \
   /         \
-(C)         (B) (pin 9)
+(C) LR       (B) RR - (pin 9)
 CCW           CW
 (pin 10)
 
@@ -32,10 +32,10 @@ CCW           CW
 #define MAX_ESC_SIGNAL    2000    // This is the max output that will be sent to ESC.
 #define MIN_ESC_CUTOFF    1150    // Minimum ESC signal to spin props
 #define MIN_ESC_SIGNAL    1000    // Minimum ESC signal, attach esc with this singal, should be not prop spinning.
-#define MOTOR_PIN_A       6 
-#define MOTOR_PIN_B       9       
-#define MOTOR_PIN_C       10       
-#define MOTOR_PIN_D       11     
+#define MOTOR_PIN_A       4 
+#define MOTOR_PIN_B       5       
+#define MOTOR_PIN_C       6       
+#define MOTOR_PIN_D       7     
 
 #define MIN_INPUT_THRUST  0
 #define MAX_INPUT_THRUST  1000

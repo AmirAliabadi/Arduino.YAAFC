@@ -41,7 +41,7 @@ double gyro[3] = {0,0,0};
 double accl[3] = {0,0,0};
 double gyro_read[3] = {0,0,0};
 double accl_read[3] = {0,0,0};
-double temp_read;
+double tempruture_read;
 double gyro_offsets[3] = {0,0,0};
 
 /* MPU 6050 Orientation:
@@ -115,48 +115,29 @@ void read_mpu_process() {
 // gyro + accelerometer reads: 844us
 // accelerometer reads: 408us
 
-// NOTE:
-// You can submit a read of 12 bytes starting at 0x3B
-// that will give you both the gyro and accel data
-// but you need to wait for 12 (instead of 6 2x)
-// This seems slower, one big read; vs two 6 byte reads.  Kinda suprising.
+  Wire.beginTransmission(mpu_address);          
+  Wire.write(0x3B);                             //Start reading from register MPU6050_RA_ACCEL_XOUT_H 0x3B 
+  Wire.endTransmission();                       
+  Wire.requestFrom(mpu_address, 14);             //Request 6 bytes from the gyro
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// gyro read
-  Wire.beginTransmission(mpu_address);      //Start communication with the gyro
-  Wire.write(0x43);                         //Start reading from register 0x43 
-  Wire.endTransmission();                   //End the transmission
-  Wire.requestFrom(mpu_address, 6);         //Request 6 bytes 
-  
-  while(Wire.available() < 6);              //Wait until the 6 bytes are received
-  
-  gyro_read[0] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
-  gyro_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
-  gyro_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
-// gyro read
-////////////////////////////////////////////////////////////////////////////////////////////////
+  // there is XXX uS of time here.  use it.
 
-////////////////////////////////////////////////////////////////////////////////////////////////
-// accl read
-  Wire.beginTransmission(mpu_address);          //Start communication with the gyro
-  Wire.write(0x3B);                             //Start reading from register 0x3B 
-  Wire.endTransmission();                       //End the transmission
-  Wire.requestFrom(mpu_address, 6);             //Request 6 bytes from the gyro
-  
-  while(Wire.available() < 6);                  //Wait until the 6 bytes are received
-  
-  accl_read[0] = Wire.read()<<8|Wire.read();    //Read X high and low part of the accel data
-  accl_read[1] = Wire.read()<<8|Wire.read();    //Read Y high and low part of the accel data
-  accl_read[2] = Wire.read()<<8|Wire.read();    //Read Z high and low part of the accel data
+  while(Wire.available() < 14);                 //Wait until the 14 bytes are received.
+  accl_read[0] = Wire.read()<<8|Wire.read();    //Add the low and high byte to the acc_x variable.
+  accl_read[1] = Wire.read()<<8|Wire.read();    //Add the low and high byte to the acc_y variable.
+  accl_read[2] = Wire.read()<<8|Wire.read();    //Add the low and high byte to the acc_z variable.
+  tempruture_read  = Wire.read()<<8|Wire.read();    //Add the low and high byte to the temperature variable.
+  gyro_read[0] = Wire.read()<<8|Wire.read();    //Read high and low part of the gryo_x data.
+  gyro_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the gryo_y data.
+  gyro_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the gryo_z data.
 
-  // ACCEL_XOUT = ((ACCEL_XOUT_H<<8)|ACCEL_XOUT_L);
-  // ACCEL_YOUT = ((ACCEL_YOUT_H<<8)|ACCEL_YOUT_L);
-  // ACCEL_ZOUT = ((ACCEL_ZOUT_H<<8)|ACCEL_ZOUT_L);
-  // if(ACCEL_XOUT>32767) ACCEL_XOUT = ACCEL_XOUT-65536;
-  // if(ACCEL_YOUT>32767) ACCEL_YOUT = ACCEL_YOUT-65536;
-  // if(ACCEL_ZOUT>32767) ACCEL_ZOUT = ACCEL_ZOUT-65536;
-// accl read 
-////////////////////////////////////////////////////////////////////////////////////////////////
+
+// ACCEL_XOUT = ((ACCEL_XOUT_H<<8)|ACCEL_XOUT_L);
+// ACCEL_YOUT = ((ACCEL_YOUT_H<<8)|ACCEL_YOUT_L);
+// ACCEL_ZOUT = ((ACCEL_ZOUT_H<<8)|ACCEL_ZOUT_L);
+// if(ACCEL_XOUT>32767) ACCEL_XOUT = ACCEL_XOUT-65536;
+// if(ACCEL_YOUT>32767) ACCEL_YOUT = ACCEL_YOUT-65536;
+// if(ACCEL_ZOUT>32767) ACCEL_ZOUT = ACCEL_ZOUT-65536;
 
 //#define  SYS_FREQ 40000000
 //#define PB_DIV 8

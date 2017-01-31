@@ -35,6 +35,7 @@
 #define MPU6050_RA_GYRO_ZOUT_H      0x47
 #define MPU6050_RA_GYRO_ZOUT_L      0x48
 
+#define MPU6050_RA_FIFO_EN          0x23
 
 double gyro[3] = {0,0,0};
 double accl[3] = {0,0,0};
@@ -76,23 +77,23 @@ void init_mpu() {
 
     Wire.beginTransmission(mpu_address);                        
     Wire.write(0x6B);                                            // PWR_MGMT_1 register 
-    Wire.write(B00001000);                                       // Internal 8mhz Clock, Temperature Disabled
+    Wire.write(B00001000);                                       // Internal 8mhz Clock, Temperature Disabled, Sleep Mode disable.  Bit 7 will cause a reset
     Wire.endTransmission();                                      
         
-//    Wire.beginTransmission(mpu_address);          
-//    Wire.write(0x24);                             // MPU6050_RA_I2C_MST_CTRL register
-//    Wire.write(B00001101);                        // MULT_MST_EN = 0, WAIT_FOR_ES = 0, SLV_3_FIFO_EN = 0, I2C_MST_P_NSR = 0, I2C_MST_CLK = 13 : 400KHZ
-//    Wire.endTransmission();                       
-
     Wire.beginTransmission(mpu_address);              
     Wire.write(0x1B);                            // Set MPU6050_RA_GYRO_CONFIG 
-    Wire.write(B00001000);                       // FS_SEL,  +/- 500 */S           
-    Wire.endTransmission();                       
+    Wire.write(B00001000);                       // Gyro Full Scale FS_SEL,  +/- 500 */S  : 012=unused, 34=FS_SEL, 567=Self_Test         
+    Wire.endTransmission();                      // FS_SEL : 0 = +/-250 */s, 1 = +/- 500 */s, 2 = +/- 1000 */s, 3 = +/- 2000 */s             
 
     Wire.beginTransmission(mpu_address);          
     Wire.write(0x1C);                            // Set MPU6050_RA_ACCEL_CONFIG 
-    Wire.write(B00001000);                       // AFS_SEL, +/- 4g       
-    Wire.endTransmission();    
+    Wire.write(B00001000);                       // Accelerometer Full Scale - AFS_SEL, +/- 4g   : 012=unused, 34=AFS_SEL, 567=Self_Test    
+    Wire.endTransmission();                      // AFS_SEL : 0 = +/- 2g, 1 = +/- 4g, 2 = +/- 8g, 3 = +/- 16g 
+
+    Wire.beginTransmission(mpu_address);          
+    Wire.write(0x23);                            // MPU6050_RA_FIFO_EN
+    Wire.write(B00000000);                       // disable fifo buffer for slv0, slv1, slv2, ACCEL, Zgyro, Ygyro, Xgyro, Temp
+    Wire.endTransmission();                           
 
     Wire.beginTransmission(mpu_address);          
     Wire.write(0x1A);                           // MPU6050_RA_CONFIG 
@@ -114,6 +115,13 @@ void read_mpu_process() {
 // gyro + accelerometer reads: 844us
 // accelerometer reads: 408us
 
+// NOTE:
+// You can submit a read of 12 bytes starting at 0x3B
+// that will give you both the gyro and accel data
+// but you need to wait for 12 (instead of 6 2x)
+// This seems slower, one big read; vs two 6 byte reads.  Kinda suprising.
+
+////////////////////////////////////////////////////////////////////////////////////////////////
 // gyro read
   Wire.beginTransmission(mpu_address);      //Start communication with the gyro
   Wire.write(0x43);                         //Start reading from register 0x43 
@@ -126,7 +134,9 @@ void read_mpu_process() {
   gyro_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
   gyro_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the gyro data
 // gyro read
+////////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////////////////////
 // accl read
   Wire.beginTransmission(mpu_address);          //Start communication with the gyro
   Wire.write(0x3B);                             //Start reading from register 0x3B 
@@ -135,11 +145,40 @@ void read_mpu_process() {
   
   while(Wire.available() < 6);                  //Wait until the 6 bytes are received
   
-  accl_read[0] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
-  accl_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
-  accl_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the accel data
+  accl_read[0] = Wire.read()<<8|Wire.read();    //Read X high and low part of the accel data
+  accl_read[1] = Wire.read()<<8|Wire.read();    //Read Y high and low part of the accel data
+  accl_read[2] = Wire.read()<<8|Wire.read();    //Read Z high and low part of the accel data
+
+  // ACCEL_XOUT = ((ACCEL_XOUT_H<<8)|ACCEL_XOUT_L);
+  // ACCEL_YOUT = ((ACCEL_YOUT_H<<8)|ACCEL_YOUT_L);
+  // ACCEL_ZOUT = ((ACCEL_ZOUT_H<<8)|ACCEL_ZOUT_L);
+  // if(ACCEL_XOUT>32767) ACCEL_XOUT = ACCEL_XOUT-65536;
+  // if(ACCEL_YOUT>32767) ACCEL_YOUT = ACCEL_YOUT-65536;
+  // if(ACCEL_ZOUT>32767) ACCEL_ZOUT = ACCEL_ZOUT-65536;
 // accl read 
+////////////////////////////////////////////////////////////////////////////////////////////////
+
+//#define  SYS_FREQ 40000000
+//#define PB_DIV 8
+//#define PRESCALE 256
+//#define T1_TICK (SYS_FREQ/PB_DIV/PRESCALE/100)
+//#define dt .01                                                                                                                                                                      
+//#define g 8192
+
+//#define gyro_x_sensitivity 131 //66.5 Dead on at last check
+//#define gyro_y_sensitivity 131 //72.7 Dead on at last check
+//#define gyro_z_sensitivity 131
+  //GYRO_XRATE = (float)GYRO_XOUT/gyro_x_sensitivity;
+  //GYRO_YRATE = (float)GYRO_YOUT/gyro_y_sensitivity;
+  //GYRO_ZRATE = (float)GYRO_ZOUT/gyro_z_sensitivity;
   
+  //GYRO_XANGLE += GYRO_XRATE*dt;
+  //GYRO_YANGLE += GYRO_YRATE*dt;
+  //GYRO_ZANGLE += GYRO_ZRATE*dt;
+
+
+  // Apply offset to gyro_read.  gyro_offsets defaults to zero
+  // and is only <> 0.0 once calibration is done.
   gyro_read[0] = gyro_read[0] - gyro_offsets[0] ;
   gyro_read[1] = gyro_read[1] - gyro_offsets[1] ;    
   gyro_read[2] = gyro_read[2] - gyro_offsets[2] ; 
@@ -154,6 +193,11 @@ void read_mpu_process() {
     gyro[1] = (gyro_read[1] / 57.14286);
     gyro[2] = (gyro_read[2] / 57.14286);      
   }
+
+  //ACCEL_XANGLE = 57.295*atan((float)ACCEL_YOUT/ sqrt(pow((float)ACCEL_ZOUT,2)+pow((float)ACCEL_XOUT,2)));
+  //ACCEL_YANGLE = 57.295*atan((float)-ACCEL_XOUT/ sqrt(pow((float)ACCEL_ZOUT,2)+pow((float)ACCEL_YOUT,2)));
+  //ACCEL_XANGLE = 57.295*atan((float)accl_read[1]/ sqrt(pow((float)accl_read[2],2)+pow((float)accl_read[0],2)));
+  //ACCEL_YANGLE = 57.295*atan((float)-accl_read[0]/ sqrt(pow((float)accl_read[2],2)+pow((float)accl_read[1],2)));  
 
 /* 
   if( gyro_lpf ) {

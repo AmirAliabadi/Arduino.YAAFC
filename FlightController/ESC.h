@@ -1,4 +1,5 @@
-#define PWM_FERQUENCY 4000
+#define PWM_FERQUENCY 4000  // 250hz, very stable
+//#define PWM_FERQUENCY 3400 // 290hz, stable
 
 unsigned long last_pwm_pulse = 0;
 unsigned long esc_pwm_timmer = 0;

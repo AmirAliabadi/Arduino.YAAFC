@@ -51,7 +51,12 @@ void setup() {
   Wire.begin();
   Wire.setClock(400000L);   // i2c at 400k Hz
 
-  attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
+  ppm_channels[1] = 1500;
+  ppm_channels[2] = 1500;
+  ppm_channels[3] = 1500;
+  ppm_channels[4] = 1500;
+  
+  //attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
   //while( !ppm_sync ) ; // wait for ppm sync
   //wait_for_initial_inputs(); // wait for all stick to be neutral
@@ -61,6 +66,9 @@ void setup() {
   calibrate_gyro();
   init_esc();
   init_pid();
+
+  OCR0A = 0xAF;
+  TIMSK0 |= _BV(OCIE0A);  
 }
 
 unsigned int guesture_count = 0;
@@ -126,7 +134,7 @@ void loop() {
 
   if( system_check & INIT_ESC_ARMED ) {
 
-    throttle = ( f_throttle += throttle_input_gain );
+    throttle = (int)( f_throttle += throttle_input_gain );
 
     if( f_throttle > MAX_ESC_SIGNAL ) f_throttle = MAX_ESC_SIGNAL;
     if( f_throttle < MIN_ESC_CUTOFF ) f_throttle = MIN_ESC_CUTOFF;    
@@ -141,20 +149,22 @@ void loop() {
     // TODO:
 
     // DO MOTOR MIX ALGORITHM : X Setup
-    va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
-    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
-    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
-    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
+    va = throttle - pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
+    vb = throttle + pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
+    vc = throttle + pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
+    vd = throttle - pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
 
-    //Serial.print( pitch_pid_rate_out );
-    //Serial.print("\t");
-    //Serial.println( pitch_pid_rate_out );
+    // pitch test
+    // Serial.print( va ); Serial.print( "\t" ); Serial.print( vd );    // stick pitch input - nose up, should increase, gryo up should decrease
+    // Serial.print( "\t" ); 
+    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );  // stick pitch input - nose up, should decrease, gryo up should increase
 
-    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd );  // pitch - up, should increase
-    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );  // pitch - up, should decrease
-    
-    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vb );  // roll - right, should decrease
-    // Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );  // roll - right, should increase
+    // roll test
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vb );  // stick roll input - right down, should decrease, gyro right should increase
+    // Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );  // stick roll input - right down, should increase, gyro right should decrease
+
+    // yaw test
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vc );  // stick yaw right - increase ?  
 
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
@@ -182,3 +192,50 @@ void loop() {
 
 }
 
+volatile int aa_dir = 10;
+volatile unsigned long my_counter = 0;
+// Interrupt is called once a millisecond
+SIGNAL(TIMER0_COMPA_vect) 
+{
+  my_counter ++ ;
+  if( my_counter == 10 ) {
+        
+    if( system_check & INIT_PID_ON ) {
+  
+        if( system_check & INIT_ESC_ARMED ) {
+
+          if( throttle < 1400 ) {
+            ppm_channels[3] = 1600;
+          } else {
+            ppm_channels[3] = 1500;
+    
+            if( ppm_channels[2] >= 1800 || ppm_channels[2] <= 1200 ) {
+              aa_dir = aa_dir * -1;
+            }
+
+ //           ppm_channels[2] += aa_dir ;
+          }
+          
+        } else {
+          ppm_channels[3] = 1000;
+          
+        }
+    
+      //ppm_channels[1] ;  // roll
+      //ppm_channels[2] ;  // pitch
+      //ppm_channels[3] ;  // throttle
+      //ppm_channels[4] ;  // yaw
+
+      }
+
+//      Serial.print( ppm_channels[3] );    
+//      Serial.print( "\t" );    
+//      Serial.print( throttle_input );    
+//      Serial.print( "\t" );          
+//      Serial.print( throttle  ); 
+//      Serial.print( "\t" );          
+//      Serial.println( ppm_channels[2]  );  
+
+      my_counter = 0;      
+  }
+}

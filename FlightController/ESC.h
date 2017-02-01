@@ -37,17 +37,32 @@ void disarm_esc()
 
 void update_motors()
 {
+  // wait for next rising pulse time
   while( (micros() - last_pwm_pulse) < PWM_FERQUENCY );
   last_pwm_pulse= micros(); 
 
+  // all PWM pins HIGH
 //PORTD |= B00001000; // Set digital port 3 high
   PORTD |= B01000000; // Set digital port 6 high
   PORTB |= B00001110; // Set digital port 9,10,11 high
 
+  // compute when each PWM pin should go low
   timer_channel_a = last_pwm_pulse + va;
   timer_channel_b = last_pwm_pulse + vb;
   timer_channel_c = last_pwm_pulse + vc;
   timer_channel_d = last_pwm_pulse + vd;
+
+  // All pins stay HIGH for at least 1000uS
+  // so we have 1000uS of time right here
+  // begin
+  // -- do something that is < 1000us guaranteed
+  // -- one really good idea is the MPU read, that will for the next 
+  // -- processing / pid loop
+
+  // read_mpu_process(); 576us without and conversions, just the raw gyro+accel read
+  // mpu_conversion_process(); 668us 
+  
+  // end
 
   motors = B00001111;
   while( motors ) 

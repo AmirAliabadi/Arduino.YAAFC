@@ -44,6 +44,10 @@ double accl_read[3] = {0,0,0};
 double tempruture_read;
 double gyro_offsets[3] = {0,0,0};
 
+
+bool gyro_lpf = false;
+
+
 /* MPU 6050 Orientation:
 
 front left          front right  (CCW)
@@ -70,6 +74,8 @@ Yaw Left    = - Gyro
 byte PIT = 0;
 byte ROL = 1;
 byte YAW = 2;
+
+float x_angle, y_angle;
 
 int mpu_address = 0x68;
 void init_mpu() {
@@ -109,28 +115,31 @@ void init_mpu() {
     system_check |= INIT_MPU_ENABLED;            
 }
 
-bool gyro_lpf = false;
-void read_mpu_process() {
-// gyro only reads: 520us
-// gyro + accelerometer reads: 844us
-// accelerometer reads: 408us
 
+// gyro only reads: 520us
+// gyro + accelerometer + temp reads: 844us
+// gyro + accelerometer reads: 776us
+// accelerometer reads: 408us
+void read_mpu_process() {
   Wire.beginTransmission(mpu_address);          
   Wire.write(0x3B);                             //Start reading from register MPU6050_RA_ACCEL_XOUT_H 0x3B 
   Wire.endTransmission();                       
   Wire.requestFrom(mpu_address, 14);             //Request 6 bytes from the gyro
 
   // there is XXX uS of time here.  use it.
+  while(Wire.available() < 14);                 //Wait until the 14 bytes are received.  This is extremely fast, 4uS
+  
+  accl_read[0] = (Wire.read()<<8|Wire.read());    //Add the low and high byte to the acc_x variable.
+  accl_read[1] = (Wire.read()<<8|Wire.read());    //Add the low and high byte to the acc_y variable.
+  accl_read[2] = (Wire.read()<<8|Wire.read());    //Add the low and high byte to the acc_z variable.
+  tempruture_read  = (Wire.read()<<8|Wire.read());    //Add the low and high byte to the temperature variable.
+  gyro_read[0] = (Wire.read()<<8|Wire.read());    //Read high and low part of the gryo_x data.
+  gyro_read[1] = (Wire.read()<<8|Wire.read());    //Read high and low part of the gryo_y data.
+  gyro_read[2] = (Wire.read()<<8|Wire.read());    //Read high and low part of the gryo_z data.
 
-  while(Wire.available() < 14);                 //Wait until the 14 bytes are received.
-  accl_read[0] = Wire.read()<<8|Wire.read();    //Add the low and high byte to the acc_x variable.
-  accl_read[1] = Wire.read()<<8|Wire.read();    //Add the low and high byte to the acc_y variable.
-  accl_read[2] = Wire.read()<<8|Wire.read();    //Add the low and high byte to the acc_z variable.
-  tempruture_read  = Wire.read()<<8|Wire.read();    //Add the low and high byte to the temperature variable.
-  gyro_read[0] = Wire.read()<<8|Wire.read();    //Read high and low part of the gryo_x data.
-  gyro_read[1] = Wire.read()<<8|Wire.read();    //Read high and low part of the gryo_y data.
-  gyro_read[2] = Wire.read()<<8|Wire.read();    //Read high and low part of the gryo_z data.
+}
 
+void mpu_conversion_process() {
 
 // ACCEL_XOUT = ((ACCEL_XOUT_H<<8)|ACCEL_XOUT_L);
 // ACCEL_YOUT = ((ACCEL_YOUT_H<<8)|ACCEL_YOUT_L);
@@ -138,8 +147,13 @@ void read_mpu_process() {
 // if(ACCEL_XOUT>32767) ACCEL_XOUT = ACCEL_XOUT-65536;
 // if(ACCEL_YOUT>32767) ACCEL_YOUT = ACCEL_YOUT-65536;
 // if(ACCEL_ZOUT>32767) ACCEL_ZOUT = ACCEL_ZOUT-65536;
+//
+// if(accl_read[0]>32767) accl_read[0] = accl_read[0]-65536;
+// if(accl_read[1]>32767) accl_read[1] = accl_read[1]-65536;
+// if(accl_read[2]>32767) accl_read[2] = accl_read[2]-65536;
+//////////////////////////////////////////
 
-//#define  SYS_FREQ 40000000
+//#define SYS_FREQ 40000000
 //#define PB_DIV 8
 //#define PRESCALE 256
 //#define T1_TICK (SYS_FREQ/PB_DIV/PRESCALE/100)
@@ -157,7 +171,6 @@ void read_mpu_process() {
   //GYRO_YANGLE += GYRO_YRATE*dt;
   //GYRO_ZANGLE += GYRO_ZRATE*dt;
 
-
   // Apply offset to gyro_read.  gyro_offsets defaults to zero
   // and is only <> 0.0 once calibration is done.
   gyro_read[0] = gyro_read[0] - gyro_offsets[0] ;
@@ -165,11 +178,13 @@ void read_mpu_process() {
   gyro_read[2] = gyro_read[2] - gyro_offsets[2] ; 
 
   if( system_check & INIT_ESC_ARMED ) {
-    // not sure why but this helps even when the 6050 has the DLPF enabled.
+    // convert to degrees/sec
+    // apply low pass filter, not sure why but this helps even when the 6050 has the DLPF enabled.
     gyro[0] = (gyro[0] * 0.8) + ((gyro_read[0] / 57.14286) * 0.2);
     gyro[1] = (gyro[1] * 0.8) + ((gyro_read[1] / 57.14286) * 0.2);
     gyro[2] = (gyro[2] * 0.8) + ((gyro_read[2] / 57.14286) * 0.2);   
   } else {
+    // convert to degrees/sec
     gyro[0] = (gyro_read[0] / 57.14286);
     gyro[1] = (gyro_read[1] / 57.14286);
     gyro[2] = (gyro_read[2] / 57.14286);      
@@ -177,8 +192,10 @@ void read_mpu_process() {
 
   //ACCEL_XANGLE = 57.295*atan((float)ACCEL_YOUT/ sqrt(pow((float)ACCEL_ZOUT,2)+pow((float)ACCEL_XOUT,2)));
   //ACCEL_YANGLE = 57.295*atan((float)-ACCEL_XOUT/ sqrt(pow((float)ACCEL_ZOUT,2)+pow((float)ACCEL_YOUT,2)));
-  //ACCEL_XANGLE = 57.295*atan((float)accl_read[1]/ sqrt(pow((float)accl_read[2],2)+pow((float)accl_read[0],2)));
-  //ACCEL_YANGLE = 57.295*atan((float)-accl_read[0]/ sqrt(pow((float)accl_read[2],2)+pow((float)accl_read[1],2)));  
+  // this adds 500us of overhead!!!
+  x_angle = 57.295*atan((float)accl_read[1]/ sqrt(pow((float)accl_read[2],2)+pow((float)accl_read[0],2)));
+  y_angle = 57.295*atan((float)-accl_read[0]/ sqrt(pow((float)accl_read[2],2)+pow((float)accl_read[1],2)));  
+  // this adds 500us of overhead!!!
 
 /* 
   if( gyro_lpf ) {

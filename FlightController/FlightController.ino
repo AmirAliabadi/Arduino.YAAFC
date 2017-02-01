@@ -27,7 +27,7 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-  Serial.begin(57600);
+  // Serial.begin(57600);
     
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
@@ -116,16 +116,23 @@ void loop() {
 
   // adjust so 1500 = Zero input
   throttle_input = (throttle_input - 1500) ;
-  pitch_input    = (pitch_input - 1500) * -1.0;
+  pitch_input    = (pitch_input - 1500) * -1.0; // inverted signal for TX
   roll_input     = (roll_input - 1500) ;
   yaw_input      = yaw_input - 1500 ;   
 
-  digitalWrite(12,HIGH);
+  
                                     // 250Hz with no i2cdevlib and no DMP  
                                     // With i2cdevlib and DMP enabled this is about 100 Hz
   read_mpu_process();               // Just the gyro read: 300uS 
                                     // 500us with lpf and offsets
-                                    // 800ms with Accelerometer and Gryo reads 
+                                    // 800us with Accelerometer and Gryo reads 
+                                    // 576us if its just the raw reads of gyro+accel (no conversion)
+
+  digitalWrite(12,HIGH);
+  
+  mpu_conversion_process();         // convert raw readings
+                                    // 196us without accel conversions to angles
+                                    // 668us with the accel conversions, very expensive
   digitalWrite(12,LOW);
 
   //Serial.println( gyro[0] );

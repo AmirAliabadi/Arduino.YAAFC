@@ -2,12 +2,13 @@
 
 #include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
 #include <Wire.h>
+//#include <Kalman.h> twice as slow as complementary filer
 
 #define DEBUG
 #include "FlightController.h"
 #include "PPM.h"
-#include "ESC.h"
-#include "MPU.h"
+
+
 
 // input values from receiver
 // ranges from 1000 to 2000 (ms)
@@ -16,18 +17,26 @@ int pitch_input = 0;
 int roll_input = 0;
 int yaw_input = 0;
 
+//Kalman kalmanX; // Create the Kalman instances
+//Kalman kalmanY;
+
 // using a center stick throttle
 // throttle value accumulates or decays bases on throttle_input
 // throttle is a value of 1000 to 2000
 int throttle = MIN_ESC_SIGNAL;
 
+double dt = 0.0;
+double timer = 0.0;
+
+#include "MPU.h"
 #include "PID.h"
+#include "ESC.h"
 
 void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-  // Serial.begin(57600);
+  Serial.begin(57600);
     
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
@@ -63,18 +72,30 @@ void setup() {
 
   init_mpu();
   delay(10);
-  calibrate_gyro();
+  calibrate();
   init_esc();
   init_pid();
 
+// unit test harness
   OCR0A = 0xAF;
-  TIMSK0 |= _BV(OCIE0A);  
+  TIMSK0 |= _BV(OCIE0A); 
+// unit test harness  
+
+  timer = micros();
+
+//  kalmanX.setAngle(0);
+//  kalmanY.setAngle(0);
 }
 
 unsigned int guesture_count = 0;
 float throttle_input_gain = 0.0;
 float f_throttle = MIN_ESC_SIGNAL;
+
+int foo=4;
 void loop() {
+
+  dt = (double)(micros() - timer) / 1000000; // Calculate delta time
+  timer = micros();  
 
   roll_input      = ppm_channels[1] ;  // Read ppm channel 1
   pitch_input     = ppm_channels[2] ;  // Read ppm channel 2
@@ -120,22 +141,19 @@ void loop() {
   roll_input     = (roll_input - 1500) ;
   yaw_input      = yaw_input - 1500 ;   
 
-  
-                                    // 250Hz with no i2cdevlib and no DMP  
-                                    // With i2cdevlib and DMP enabled this is about 100 Hz
-  read_mpu_process();               // Just the gyro read: 300uS 
-                                    // 500us with lpf and offsets
-                                    // 800us with Accelerometer and Gryo reads 
-                                    // 576us if its just the raw reads of gyro+accel (no conversion)
 
   digitalWrite(12,HIGH);
+
+  // read_mpu_process(); // moved to the ESC PWM 1000us idle time
+  mpu_conversion_process();        
   
-  mpu_conversion_process();         // convert raw readings
-                                    // 196us without accel conversions to angles
-                                    // 668us with the accel conversions, very expensive
   digitalWrite(12,LOW);
 
-  //Serial.println( gyro[0] );
+  // Serial.print(gyro[0]); Serial.print("\t"); Serial.println( compAngleX );
+  // Serial.print(gyro[0]); Serial.print("\t"); Serial.println( kalAngleX );
+  //Serial.print( compAngleX );
+  //Serial.print( "\t" );
+  //Serial.println( compAngleY );
 
   throttle_input_gain = throttle_input / 600.0;
 
@@ -156,22 +174,26 @@ void loop() {
     // TODO:
 
     // DO MOTOR MIX ALGORITHM : X Setup
-    va = throttle - pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
-    vb = throttle + pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
-    vc = throttle + pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
-    vd = throttle - pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
+    va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
+    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
+    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
+    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
+
+
+    // Serial.print( ppm_channels[foo] );
+    // Serial.print("\t");
 
     // pitch test
-    // Serial.print( va ); Serial.print( "\t" ); Serial.print( vd );    // stick pitch input - nose up, should increase, gryo up should decrease
-    // Serial.print( "\t" ); 
-    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );  // stick pitch input - nose up, should decrease, gryo up should increase
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd );    // stick pitch input - nose up, should increase, gryo up should decrease
+    //Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );    // stick pitch input - nose up, should decrease, gryo up should increase
 
     // roll test
     // Serial.print( va ); Serial.print( "\t" ); Serial.println( vb );  // stick roll input - right down, should decrease, gyro right should increase
     // Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );  // stick roll input - right down, should increase, gyro right should decrease
 
     // yaw test
-    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vc );  // stick yaw right - increase ?  
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vc );     // stick yaw right - increase ?  
+    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vd );  // stick yaw right - increase ?  
 
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
@@ -215,12 +237,13 @@ SIGNAL(TIMER0_COMPA_vect)
             ppm_channels[3] = 1600;
           } else {
             ppm_channels[3] = 1500;
-    
-            if( ppm_channels[2] >= 1800 || ppm_channels[2] <= 1200 ) {
+
+
+            if( ppm_channels[foo] >= 1800 || ppm_channels[foo] <= 1200 ) {
               aa_dir = aa_dir * -1;
             }
 
- //           ppm_channels[2] += aa_dir ;
+            ppm_channels[foo] += aa_dir ;
           }
           
         } else {

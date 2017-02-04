@@ -1,5 +1,5 @@
-#define PWM_FERQUENCY 4000  // 250hz, very stable
-//#define PWM_FERQUENCY 3400 // 290hz, stable
+//#define PWM_FERQUENCY 4000  // 250hz, very stable
+#define PWM_FERQUENCY 3100 // 323hz, very stable
 
 unsigned long last_pwm_pulse = 0;
 unsigned long esc_pwm_timmer = 0;
@@ -53,15 +53,15 @@ void update_motors()
   timer_channel_d = last_pwm_pulse + vd;
 
   // All pins stay HIGH for at least 1000uS
-  // so we have 1000uS of time right here
+  // so we have ~1000uS of time right here
   // begin
   // -- do something that is < 1000us guaranteed
-  // -- one really good idea is the MPU read, that will for the next 
-  // -- processing / pid loop
+  //digitalWrite(12,HIGH);
 
-  // read_mpu_process(); 576us without and conversions, just the raw gyro+accel read
+  read_mpu_process(); // 784us
   // mpu_conversion_process(); 668us 
-  
+
+  //digitalWrite(12,LOW);   
   // end
 
   motors = B00001111;

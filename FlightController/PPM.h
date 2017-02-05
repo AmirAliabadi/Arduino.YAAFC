@@ -35,16 +35,26 @@ void wait_for_initial_inputs() {
     if( ppm_channels[2] > 1490 && ppm_channels[2]  < 1510 ) b = b | B00000010;    
     if( ppm_channels[3] > 1490 && ppm_channels[3]  < 1510 ) b = b | B00000100;
     if( ppm_channels[4] > 1490 && ppm_channels[4]  < 1510 ) b = b | B00001000;
+#ifdef DEBUG
+    Serial.println( "center all sticks" );
+#endif
   }
 
   // wait for throttle to go to zero
   while(1) {
     if( ppm_channels[3] < 1050 ) break;
+#ifdef DEBUG
+    Serial.println( "throttle to zero" );
+#endif    
   }
 
   // wait for throttle to go to zero position
   while(1) {
     if( ppm_channels[3] > 1490 && ppm_channels[3]  < 1510 ) break;
+#ifdef DEBUG
+    Serial.println( "throttle to center" );
+#endif    
+    
   }  
 }
 

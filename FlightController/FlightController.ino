@@ -36,7 +36,6 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-  Serial.begin(57600);
     
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
@@ -65,10 +64,10 @@ void setup() {
   ppm_channels[3] = 1500;
   ppm_channels[4] = 1500;
   
-  //attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
+  attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
-  //while( !ppm_sync ) ; // wait for ppm sync
-  //wait_for_initial_inputs(); // wait for all stick to be neutral
+  while( !ppm_sync ) ; // wait for ppm sync
+  wait_for_initial_inputs(); // wait for all stick to be neutral
 
   init_mpu();
   delay(10);
@@ -77,8 +76,8 @@ void setup() {
   init_pid();
 
 // unit test harness
-  OCR0A = 0xAF;
-  TIMSK0 |= _BV(OCIE0A); 
+//  OCR0A = 0xAF;
+//  TIMSK0 |= _BV(OCIE0A); 
 // unit test harness  
 
   timer = micros();
@@ -91,11 +90,12 @@ unsigned int guesture_count = 0;
 float throttle_input_gain = 0.0;
 float f_throttle = MIN_ESC_SIGNAL;
 
-int foo=4;
+//int foo=4;
+boolean calibartion_mode = false;
 void loop() {
 
   dt = (double)(micros() - timer) / 1000000; // Calculate delta time
-  timer = micros();  
+  timer = micros();
 
   roll_input      = ppm_channels[1] ;  // Read ppm channel 1
   pitch_input     = ppm_channels[2] ;  // Read ppm channel 2
@@ -157,7 +157,21 @@ void loop() {
 
   throttle_input_gain = throttle_input / 600.0;
 
-  if( system_check & INIT_ESC_ARMED ) {
+  if( calibartion_mode ) {
+    throttle = (int)( f_throttle += throttle_input_gain );
+
+    if( f_throttle > MAX_ESC_SIGNAL ) f_throttle = MAX_ESC_SIGNAL;
+    if( f_throttle < MIN_ESC_CUTOFF ) f_throttle = MIN_ESC_CUTOFF;    
+
+    if( throttle > MAX_ESC_SIGNAL ) throttle = MAX_ESC_SIGNAL;
+    if( throttle < MIN_ESC_CUTOFF ) throttle = MIN_ESC_CUTOFF;    
+
+    va = throttle ; // front right - CCW
+    vb = throttle ; // front left  -  CW
+    vc = throttle ; // back left   - CCW
+    vd = throttle ; // back right  -  CW   
+    
+  } else  if( system_check & INIT_ESC_ARMED ) {
 
     throttle = (int)( f_throttle += throttle_input_gain );
 
@@ -221,6 +235,8 @@ void loop() {
 
 }
 
+/*
+ * unit test harness
 volatile int aa_dir = 10;
 volatile unsigned long my_counter = 0;
 // Interrupt is called once a millisecond
@@ -258,14 +274,7 @@ SIGNAL(TIMER0_COMPA_vect)
 
       }
 
-//      Serial.print( ppm_channels[3] );    
-//      Serial.print( "\t" );    
-//      Serial.print( throttle_input );    
-//      Serial.print( "\t" );          
-//      Serial.print( throttle  ); 
-//      Serial.print( "\t" );          
-//      Serial.println( ppm_channels[2]  );  
-
       my_counter = 0;      
   }
 }
+*/

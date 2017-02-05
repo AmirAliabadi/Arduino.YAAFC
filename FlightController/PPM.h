@@ -54,7 +54,7 @@ void wait_for_initial_inputs() {
 #ifdef DEBUG
     Serial.println( "throttle to center" );
 #endif    
-    
   }  
+  
 }
 

@@ -8,8 +8,6 @@
 #include "FlightController.h"
 #include "PPM.h"
 
-
-
 // input values from receiver
 // ranges from 1000 to 2000 (ms)
 int throttle_input = 0;
@@ -91,7 +89,7 @@ float throttle_input_gain = 0.0;
 float f_throttle = MIN_ESC_SIGNAL;
 
 //int foo=4;
-boolean calibartion_mode = false;
+boolean calibartion_mode = false; // no pids, throttle max is 2000us
 void loop() {
 
   dt = (double)(micros() - timer) / 1000000; // Calculate delta time
@@ -137,9 +135,9 @@ void loop() {
 
   // adjust so 1500 = Zero input
   throttle_input = (throttle_input - 1500) ;
-  pitch_input    = (pitch_input - 1500) * -1.0; // inverted signal for TX
+  pitch_input    = (pitch_input - 1500) * -1.0; // inverted signal from TX
   roll_input     = (roll_input - 1500) ;
-  yaw_input      = yaw_input - 1500 ;   
+  yaw_input      = (yaw_input - 1500) ;   
 
 
   digitalWrite(12,HIGH);
@@ -151,9 +149,9 @@ void loop() {
 
   // Serial.print(gyro[0]); Serial.print("\t"); Serial.println( compAngleX );
   // Serial.print(gyro[0]); Serial.print("\t"); Serial.println( kalAngleX );
-  //Serial.print( compAngleX );
-  //Serial.print( "\t" );
-  //Serial.println( compAngleY );
+  // Serial.print( compAngleX );
+  // Serial.print( "\t" );
+  // Serial.println( compAngleY );
 
   throttle_input_gain = throttle_input / 600.0;
 
@@ -199,7 +197,7 @@ void loop() {
 
     // pitch test
     // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd );    // stick pitch input - nose up, should increase, gryo up should decrease
-    //Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );    // stick pitch input - nose up, should decrease, gryo up should increase
+    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vc );    // stick pitch input - nose up, should decrease, gryo up should increase
 
     // roll test
     // Serial.print( va ); Serial.print( "\t" ); Serial.println( vb );  // stick roll input - right down, should decrease, gyro right should increase

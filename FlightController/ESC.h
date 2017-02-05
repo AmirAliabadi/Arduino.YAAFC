@@ -1,5 +1,5 @@
-//#define PWM_FERQUENCY 4000  // 250hz, very stable
-#define PWM_FERQUENCY 3100 // 323hz, very stable
+#define PWM_FERQUENCY 4000  // 250hz, very stable
+//#define PWM_FERQUENCY 3100 // 323hz, very stable
 
 unsigned long last_pwm_pulse = 0;
 unsigned long esc_pwm_timmer = 0;
@@ -17,6 +17,10 @@ long va,vb,vc,vd ;  // motors a,b,c and d outputs
 
 void init_esc()
 {
+#ifdef DEBUG
+    Serial.println( "init_esc" );
+#endif   
+  
 //  DDRD |= B00001000;      //Configure digital poort 3 as output
 //  DDRD |= B00100000;      //Configure digital poort 5 as output
 //    DDRD |= B01000000;    //Configure digital poort 6 as output
@@ -28,11 +32,17 @@ void init_esc()
 
 void arm_esc()
 {
+#ifdef DEBUG
+    Serial.println( "arm_esc" );
+#endif     
   system_check |= INIT_ESC_ARMED;
 }
 
 void disarm_esc()
 {
+#ifdef DEBUG
+    Serial.println( "disarm_esc" );
+#endif   
   system_check &= ~(INIT_ESC_ARMED);
 }
 

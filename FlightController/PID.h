@@ -22,6 +22,10 @@ float r_last_error    = 0.0;
 
 void init_pid()
 {
+#ifdef DEBUG
+    Serial.println( "init_pid" );
+#endif
+  
   system_check |= INIT_PID_ON ;
 }
 

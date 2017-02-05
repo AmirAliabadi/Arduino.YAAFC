@@ -1,10 +1,11 @@
 //#define DEBUG
+//#define UNIT_TEST_MODE
 
 #include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
 #include <Wire.h>
 //#include <Kalman.h> twice as slow as complementary filer
 
-#define DEBUG
+//#define DEBUG
 #include "FlightController.h"
 #include "PPM.h"
 
@@ -34,7 +35,7 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-    
+      
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
   system_check = INIT_CLEARED;
@@ -61,11 +62,13 @@ void setup() {
   ppm_channels[2] = 1500;
   ppm_channels[3] = 1500;
   ppm_channels[4] = 1500;
-  
+
+#ifndef UNIT_TEST_MODE
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
   while( !ppm_sync ) ; // wait for ppm sync
   wait_for_initial_inputs(); // wait for all stick to be neutral
+#endif  
 
   init_mpu();
   delay(10);
@@ -73,22 +76,28 @@ void setup() {
   init_esc();
   init_pid();
 
+#ifdef UNIT_TEST_MODE
 // unit test harness
-//  OCR0A = 0xAF;
-//  TIMSK0 |= _BV(OCIE0A); 
+  OCR0A = 0xAF;
+  TIMSK0 |= _BV(OCIE0A); 
 // unit test harness  
+#endif
 
   timer = micros();
 
 //  kalmanX.setAngle(0);
 //  kalmanY.setAngle(0);
+
+#ifdef DEBUG
+    Serial.println( "init_comleted" );
+#endif
 }
 
 unsigned int guesture_count = 0;
 float throttle_input_gain = 0.0;
 float f_throttle = MIN_ESC_SIGNAL;
 
-//int foo=4;
+int foo=4;
 boolean calibartion_mode = false; // no pids, throttle max is 2000us
 void loop() {
 
@@ -99,6 +108,10 @@ void loop() {
   pitch_input     = ppm_channels[2] ;  // Read ppm channel 2
   throttle_input  = ppm_channels[3] ;  // Read ppm channel 3
   yaw_input       = ppm_channels[4] ;  // Read ppm channel 4
+
+  if( throttle_input < 1050 ) {
+    yaw_input = 1500;
+  }
 
   // 20us of deadband
   if( pitch_input >= 1490 && pitch_input <= 1510 ) pitch_input = 1500;
@@ -139,7 +152,6 @@ void loop() {
   roll_input     = (roll_input - 1500) ;
   yaw_input      = (yaw_input - 1500) ;   
 
-
   digitalWrite(12,HIGH);
 
   // read_mpu_process(); // moved to the ESC PWM 1000us idle time
@@ -149,9 +161,11 @@ void loop() {
 
   // Serial.print(gyro[0]); Serial.print("\t"); Serial.println( compAngleX );
   // Serial.print(gyro[0]); Serial.print("\t"); Serial.println( kalAngleX );
-  // Serial.print( compAngleX );
-  // Serial.print( "\t" );
-  // Serial.println( compAngleY );
+#ifdef DEBUG  
+//  Serial.print( compAngleX );
+//  Serial.print( "\t" );
+//  Serial.println( compAngleY );
+#endif  
 
   throttle_input_gain = throttle_input / 600.0;
 
@@ -186,10 +200,10 @@ void loop() {
     // TODO:
 
     // DO MOTOR MIX ALGORITHM : X Setup
-    va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
-    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
-    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
-    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
+    va = throttle - pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front right - CCW
+    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front left  -  CW
+    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back left   - CCW
+    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back right  -  CW
 
 
     // Serial.print( ppm_channels[foo] );
@@ -233,8 +247,8 @@ void loop() {
 
 }
 
-/*
- * unit test harness
+#ifdef UNIT_TEST_MODE
+// unit test harness
 volatile int aa_dir = 10;
 volatile unsigned long my_counter = 0;
 // Interrupt is called once a millisecond
@@ -275,4 +289,4 @@ SIGNAL(TIMER0_COMPA_vect)
       my_counter = 0;      
   }
 }
-*/
+#endif

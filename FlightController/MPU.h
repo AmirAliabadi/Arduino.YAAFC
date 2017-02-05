@@ -86,6 +86,10 @@ Yaw Left    = - Gyro
 
 
 void init_mpu() {
+#ifdef DEBUG
+    Serial.println( "init_mpu" );
+#endif   
+  
     system_check &= ~(INIT_MPU_ENABLED | INIT_MPU_STABLE);
 
     Wire.beginTransmission(mpu_address);                        
@@ -264,6 +268,10 @@ void mpu_conversion_process() {
 */
 
 void calibrate_gyro() {
+#ifdef DEBUG
+    Serial.println( "calibrate_gyro" );
+#endif
+  
   double temp_gyro_offsets[3] = {0,0,0};
  
   for(int i=0; i<2000; i++ ) {
@@ -281,9 +289,13 @@ void calibrate_gyro() {
 }
 
 void calibrate_accl() {
+#ifdef DEBUG
+    Serial.println( "calibrate_accl" );
+#endif
+  
   double temp_accl_offsets[3] = {0,0,0};
 
-  delay(5000); // wait for things to stabalize
+  delay(10000); // wait for things to stabalize
 
   // take a reading
   read_mpu_process();
@@ -301,5 +313,7 @@ void calibrate() {
   calibrate_accl();
 
   system_check |= INIT_MPU_STABLE;
-
+#ifdef DEBUG
+    Serial.println( "calibrate done" );
+#endif
 }

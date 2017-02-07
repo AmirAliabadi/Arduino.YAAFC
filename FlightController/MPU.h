@@ -40,17 +40,25 @@
 byte PIT = 0;
 byte ROL = 1;
 byte YAW = 2;
+int  pit_inverse = -1;
+int  rol_inverse = -1;
+int  yaw_inverse = -1;
 
-double gyro[3] = {0,0,0};
-double accl[3] = {0,0,0};
 double gyro_read[3] = {0,0,0};
+double gyro_pitch = 0;
+double gyro_roll = 1;
+double gyro_yaw = 2;
+
 double accl_read[3] = {0,0,0};
+double accl[3] = {0,0,0};
+
 double tmpr_read;
 
 float x_angle = 0.0;
 float y_angle = 0.0;
 double compAngleX = 0.0;
 double compAngleY = 0.0;
+
 double gyro_offsets[3] = {0,0,0};
 double compAngleX_Offset = 0.0;
 double compAngleY_Offset = 0.0;
@@ -169,15 +177,16 @@ void read_mpu_process() {
   if( system_check & INIT_ESC_ARMED ) {
     // convert to degrees/sec, with LPF 
     // not sure why but this helps even when the 6050 has the DLPF enabled.
-    gyro[0] = (gyro[0] * 0.8) + ((gyro_read[0] / 65.5) * 0.2); 
-    gyro[1] = (gyro[1] * 0.8) + ((gyro_read[1] / 65.5) * 0.2); 
-    gyro[2] = (gyro[2] * 0.8) + ((gyro_read[2] / 65.5) * 0.2); 
+    gyro_pitch  = (gyro_pitch * 0.8)  + (( (gyro_read[PIT] * pit_inverse) / 65.5) * 0.2); 
+    gyro_roll   = (gyro_roll * 0.8)   + (( (gyro_read[ROL] * rol_inverse) / 65.5) * 0.2); 
+    gyro_yaw    = (gyro_yaw * 0.8)    + (( (gyro_read[YAW] * yaw_inverse) / 65.5) * 0.2); 
   } else {
     // convert to degrees/sec, no LPF
-    gyro[0] = (gyro_read[0] / 65.5);
-    gyro[1] = (gyro_read[1] / 65.5);
-    gyro[2] = (gyro_read[2] / 65.5);      
-  }
+    gyro_pitch  = ((gyro_read[PIT] * pit_inverse) / 65.5);
+    gyro_roll   = ((gyro_read[ROL] * rol_inverse) / 65.5);
+    gyro_yaw    = ((gyro_read[YAW] * yaw_inverse) / 65.5);      
+  }  
+  
 }
 
 // 544us : complementary filter
@@ -200,8 +209,8 @@ void mpu_conversion_process() {
 
   /// ------------------------------------------------------------------------------------------
   /// use a comlementary filter to compute a more reliable x/y angle by using gyro data + accel data
-  compAngleX = 0.93 * (compAngleX + gyro[0] * dt) + 0.07 * x_angle; // Calculate the angle using a Complimentary filter
-  compAngleY = 0.93 * (compAngleY + gyro[1] * dt) + 0.07 * y_angle;  
+  compAngleX = 0.93 * (compAngleX + gyro_pitch * dt) + 0.07 * x_angle; // Calculate the angle using a Complimentary filter
+  compAngleY = 0.93 * (compAngleY + gyro_roll  * dt) + 0.07 * y_angle;  
 
   compAngleX = (compAngleX - compAngleX_Offset) ;// * compAngleX_Invert;
   compAngleY = (compAngleY - compAngleY_Offset) ;// * compAngleY_Invert;
@@ -314,6 +323,18 @@ void calibrate() {
 
   system_check |= INIT_MPU_STABLE;
 #ifdef DEBUG
+    Serial.print( "gyro offsets: " );
+    Serial.print(  gyro_offsets[0] );
+    Serial.print(  "\t" );
+    Serial.print(  gyro_offsets[1] );
+    Serial.print(  "\t" );
+    Serial.println(  gyro_offsets[2] );
+
+    Serial.print( "compAngle Offsets: " );
+    Serial.print( compAngleX_Offset );
+    Serial.print( "\t" );
+    Serial.println( compAngleY_Offset );    
+    
     Serial.println( "calibrate done" );
 #endif
 }

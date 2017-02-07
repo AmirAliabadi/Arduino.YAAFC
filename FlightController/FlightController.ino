@@ -35,6 +35,7 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
+  Serial.begin(57600);
       
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
@@ -109,10 +110,6 @@ void loop() {
   throttle_input  = ppm_channels[3] ;  // Read ppm channel 3
   yaw_input       = ppm_channels[4] ;  // Read ppm channel 4
 
-  if( throttle_input < 1050 ) {
-    yaw_input = 1500;
-  }
-
   // 20us of deadband
   if( pitch_input >= 1490 && pitch_input <= 1510 ) pitch_input = 1500;
   if( roll_input >= 1490 && roll_input <= 1510 ) roll_input = 1500;  
@@ -135,9 +132,9 @@ void loop() {
       } else {
         throttle = 0;
         pid_reset();
-        gyro[0] = 0; 
-        gyro[1] = 0; 
-        gyro[2] = 0;
+        gyro_pitch = 0; 
+        gyro_roll = 0; 
+        gyro_yaw = 0;
         arm_esc();      
       }    
       guesture_count = 0;
@@ -145,6 +142,12 @@ void loop() {
   }
   // Simple Arm/Disarm. 
   ////////////////////////////////////////////////////////////////////
+
+
+  // No YAW when throttle is at lowest position
+  if( throttle_input < 1050 ) {
+    yaw_input = 1500;
+  }
 
   // adjust so 1500 = Zero input
   throttle_input = (throttle_input - 1500) ;
@@ -200,10 +203,10 @@ void loop() {
     // TODO:
 
     // DO MOTOR MIX ALGORITHM : X Setup
-    va = throttle - pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front right - CCW
-    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front left  -  CW
-    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back left   - CCW
-    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back right  -  CW
+    va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
+    vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
+    vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
+    vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
 
 
     // Serial.print( ppm_channels[foo] );
@@ -218,9 +221,9 @@ void loop() {
     // Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );  // stick roll input - right down, should increase, gyro right should decrease
 
     // yaw test
-    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vc );     // stick yaw right - increase ?  
-    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vd );  // stick yaw right - increase ?  
-
+    // Serial.print( va ); Serial.print( "\t" ); Serial.println( vc );     // stick yaw right - increase  , hard left increase
+    // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease  
+ 
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;

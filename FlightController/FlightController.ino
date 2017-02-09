@@ -11,10 +11,10 @@
 
 // input values from receiver
 // ranges from 1000 to 2000 (ms)
-int throttle_input = 0;
-int pitch_input = 0;
-int roll_input = 0;
-int yaw_input = 0;
+int throttle_setpoint = 0;
+int pitch_setpoint    = 0;
+int roll_setpoint     = 0;
+int yaw_setpoint      = 0;
 
 //Kalman kalmanX; // Create the Kalman instances
 //Kalman kalmanY;
@@ -105,22 +105,22 @@ void loop() {
   dt = (double)(micros() - timer) / 1000000; // Calculate delta time
   timer = micros();
 
-  roll_input      = ppm_channels[1] ;  // Read ppm channel 1
-  pitch_input     = ppm_channels[2] ;  // Read ppm channel 2
-  throttle_input  = ppm_channels[3] ;  // Read ppm channel 3
-  yaw_input       = ppm_channels[4] ;  // Read ppm channel 4
+  roll_setpoint       = ppm_channels[1] ;  // Read ppm channel 1
+  pitch_setpoint      = ppm_channels[2] ;  // Read ppm channel 2
+  throttle_setpoint   = ppm_channels[3] ;  // Read ppm channel 3
+  yaw_setpoint        = ppm_channels[4] ;  // Read ppm channel 4
 
   // 20us of deadband
-  if( pitch_input >= 1490 && pitch_input <= 1510 ) pitch_input = 1500;
-  if( roll_input >= 1490 && roll_input <= 1510 ) roll_input = 1500;  
-  if( throttle_input >= 1490 && throttle_input <= 1510 ) throttle_input = 1500;  
-  if( yaw_input >= 1490 && yaw_input <= 1510 ) yaw_input = 1500;  
+  if( pitch_setpoint    >= 1490 && pitch_setpoint     <= 1510 ) pitch_setpoint = 1500;
+  if( roll_setpoint     >= 1490 && roll_setpoint      <= 1510 ) roll_setpoint = 1500;  
+  if( throttle_setpoint >= 1490 && throttle_setpoint  <= 1510 ) throttle_setpoint = 1500;  
+  if( yaw_setpoint      >= 1490 && yaw_setpoint       <= 1510 ) yaw_setpoint = 1500;  
 
   ////////////////////////////////////////////////////////////////////
   // Simple Arm/Disarm.  Hold throttle at lowest position for 500ms
   if( throttle <= MIN_ESC_CUTOFF ) {
     // Look for ESC Arm/Disarm gestures
-    if( throttle_input < 1050 ) {
+    if( throttle_setpoint < 1050 ) {
         guesture_count ++;
     } else {
       guesture_count = 0;
@@ -145,15 +145,15 @@ void loop() {
 
 
   // No YAW when throttle is at lowest position
-  if( throttle_input < 1050 ) {
-    yaw_input = 1500;
+  if( throttle_setpoint < 1050 ) {
+    yaw_setpoint = 1500;
   }
 
   // adjust so 1500 = Zero input
-  throttle_input = (throttle_input - 1500) ;
-  pitch_input    = (pitch_input - 1500) * -1.0; // inverted signal from TX
-  roll_input     = (roll_input - 1500) ;
-  yaw_input      = (yaw_input - 1500) ;   
+  throttle_setpoint = (throttle_setpoint - 1500) ;
+  pitch_setpoint    = (pitch_setpoint - 1500) * -1.0; // inverted signal from TX
+  roll_setpoint     = (roll_setpoint  - 1500) ;
+  yaw_setpoint      = (yaw_setpoint   - 1500) ;   
 
   digitalWrite(12,HIGH);
 
@@ -170,7 +170,7 @@ void loop() {
 //  Serial.println( compAngleY );
 #endif  
 
-  throttle_input_gain = throttle_input / 600.0;
+  throttle_input_gain = throttle_setpoint / 600.0;
 
   if( calibartion_mode ) {
     throttle = (int)( f_throttle += throttle_input_gain );
@@ -208,7 +208,6 @@ void loop() {
     vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
     vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
 
-
     // Serial.print( ppm_channels[foo] );
     // Serial.print("\t");
 
@@ -234,6 +233,13 @@ void loop() {
     if( vb > MAX_ESC_SIGNAL ) vb = MAX_ESC_SIGNAL;
     if( vc > MAX_ESC_SIGNAL ) vc = MAX_ESC_SIGNAL;
     if( vd > MAX_ESC_SIGNAL ) vd = MAX_ESC_SIGNAL;
+
+// debug / safety
+    if( va > 1400 ) va = 1400;
+    if( vb > 1400 ) vb = 1400;
+    if( vc > 1400 ) vc = 1400;
+    if( vd > 1400 ) vd = 1400;
+// debug / safety        
     
   } else {
     

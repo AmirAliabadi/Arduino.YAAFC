@@ -186,6 +186,14 @@ void read_mpu_process() {
     gyro_roll   = ((gyro_read[ROL] * rol_inverse) / 65.5);
     gyro_yaw    = ((gyro_read[YAW] * yaw_inverse) / 65.5);      
   }  
+
+// roll right, gryo increase
+// pitch down, gyro decrease
+// yaw right, gyro increase
+
+  //Serial.println(gyro_pitch);
+  //Serial.println(gyro_roll);
+  //Serial.println(gyro_yaw);
   
 }
 

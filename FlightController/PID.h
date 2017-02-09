@@ -52,7 +52,7 @@ void do_pid_compute()
 {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // COMPUTE YAW PID
-    pid_error = gyro_yaw - yaw_input ;
+    pid_error = gyro_yaw - yaw_setpoint ;
     yaw_pid_term[0] = y_pid_gains[0] * pid_error;                     // pTerm;
     yaw_pid_term[2] = y_pid_gains[2] * ( pid_error - y_last_error );  // dTerm = dGain * (current error - last_error)
     y_last_error = pid_error;                                         // update yaw last_error for next time
@@ -65,7 +65,7 @@ void do_pid_compute()
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // COMPUTE PITCH PID
-    pid_error = gyro_pitch - pitch_input ; 
+    pid_error = gyro_pitch - pitch_setpoint ; 
     pitch_pid_term[0] = p_pid_gains[0] * pid_error;                     // pTerm;    
     pitch_pid_term[2] = p_pid_gains[2] * ( pid_error - p_last_error );  // dTerm = dGain * (current error - last_error)
     p_last_error = pid_error;                                           // update pitch last_error for next time
@@ -77,21 +77,13 @@ void do_pid_compute()
     
     pitch_pid_rate_out  = pitch_pid_term[0] + pitch_pid_term[1] + pitch_pid_term[2] ;
 
-//    Serial.print(gyro[PIT]); Serial.print("\t"); 
-//    Serial.print(pitch_input); Serial.print("\t"); 
-//    Serial.print(pid_error); Serial.print("\t"); 
-//    Serial.print(pitch_pid_term[0]); Serial.print("\t"); 
-//    Serial.print(pitch_pid_term[1]); Serial.print("\t"); 
-//    Serial.print(pitch_pid_term[2]); Serial.print("\t");
-//    Serial.println(pitch_pid_rate_out);   
-
     if( pitch_pid_rate_out >  400.0 ) pitch_pid_rate_out =  400.0;
     if( pitch_pid_rate_out < -400.0 ) pitch_pid_rate_out = -400.0;    
     
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // COMPUTE ROLL PID
-    pid_error = gyro_roll - roll_input;     
+    pid_error = gyro_roll - roll_setpoint;     
     roll_pid_term[0] = r_pid_gains[0] * pid_error;                      // pTerm;    
     roll_pid_term[2] = r_pid_gains[2] * ( pid_error - r_last_error );   // dTerm = dGain * (current error - last_error)    
     r_last_error = pid_error;                                           // update roll last_error for next time   

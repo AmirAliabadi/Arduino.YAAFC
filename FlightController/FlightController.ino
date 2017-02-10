@@ -222,7 +222,6 @@ void loop() {
     // yaw test
     // Serial.print( va ); Serial.print( "\t" ); Serial.println( vc );     // stick yaw right - increase  , hard left increase
     // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease  
- 
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;
@@ -235,12 +234,12 @@ void loop() {
     if( vd > MAX_ESC_SIGNAL ) vd = MAX_ESC_SIGNAL;
 
 // debug / safety
-    if( va > 1400 ) va = 1400;
-    if( vb > 1400 ) vb = 1400;
-    if( vc > 1400 ) vc = 1400;
-    if( vd > 1400 ) vd = 1400;
+    if( va > 1600 ) va = 1600;
+    if( vb > 1600 ) vb = 1600;
+    if( vc > 1600 ) vc = 1600;
+    if( vd > 1600 ) vd = 1600;
 // debug / safety        
-    
+   
   } else {
     
     pid_reset();
@@ -251,6 +250,10 @@ void loop() {
     vd = MIN_ESC_SIGNAL;
         
   }
+
+  Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );     // stick yaw right - increase  , hard left increase
+  Serial.print( "\t" ); 
+  Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease      
 
   update_motors();
 

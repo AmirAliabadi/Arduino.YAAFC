@@ -13,17 +13,34 @@
 ////
 // X Setup
 /* 
-(pin 11)
-LF - CW
-(D)         (A) RF - CCW
-  \         / (pin 6)
-   \       /
-     [   ]
-   /       \
-  /         \
-(C) LR       (B) RR - (pin 9)
-CCW           CW
-(pin 10)
+          
+  (pin 7) LF - CW
+          (D)         (A) RF - CCW
+            \         / (pin 4)
+             \       /
+               [   ]
+               [   ]
+               [   ]
+             /       \
+            /         \
+  (pin 6) (C) LR       (B) RR - (pin 5)
+          CCW           CW
+
+
+MPU 6050 Orientation
+
+front left          front right  (CCW)
+(CW)
+           +------+
+           |( )  .|--- Int
+           |     .|
+           |     .|--- sda
+           |     .|--- scl
+           |( )  .|--- gnd
+           +------+--- vcc
+
+back left          back right (CW)
+(CCW)          
 
 */
   

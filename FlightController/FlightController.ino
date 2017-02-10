@@ -151,9 +151,9 @@ void loop() {
 
   // adjust so 1500 = Zero input
   throttle_setpoint = (throttle_setpoint - 1500) ;
-  pitch_setpoint    = (pitch_setpoint - 1500) * -1.0; // inverted signal from TX
-  roll_setpoint     = (roll_setpoint  - 1500) ;
-  yaw_setpoint      = (yaw_setpoint   - 1500) ;   
+  pitch_setpoint    = (pitch_setpoint    - 1500) * -1.0; // inverted signal from TX
+  roll_setpoint     = (roll_setpoint     - 1500) ;
+  yaw_setpoint      = (yaw_setpoint      - 1500) ;   
 
   digitalWrite(12,HIGH);
 
@@ -251,10 +251,12 @@ void loop() {
         
   }
 
+  // Serial.printf(F("%f\t%f\t%f\t%f\r\n"), va,vb,vc,vd);
+  
   Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );     // stick yaw right - increase  , hard left increase
   Serial.print( "\t" ); 
   Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease      
-
+  
   update_motors();
 
 }

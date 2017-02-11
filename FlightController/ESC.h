@@ -21,11 +21,11 @@ void init_esc()
     Serial.println( "init_esc" );
 #endif   
   
-//  DDRD |= B00001000;      //Configure digital poort 3 as output
-//  DDRD |= B00100000;      //Configure digital poort 5 as output
-//    DDRD |= B01000000;    //Configure digital poort 6 as output
-//    DDRB |= B00001110;    //Configure digital poort 9, 10, 11 as output.
-  DDRD |= B11110000;        //Configure digital poort 4, 5, 6 and 7 as output.
+//  DDRD |= B00001000;      // Configure digital poort 3 as output
+//  DDRD |= B00100000;      // Configure digital poort 5 as output
+//  DDRD |= B01000000;      // Configure digital poort 6 as output
+//  DDRB |= B00001110;      // Configure digital poort 9, 10, 11 as output.
+  DDRD |= B11110000;        // Configure digital poort 4, 5, 6 and 7 as output.
 
   system_check |= INIT_ESC_ATTACHED;
 }
@@ -53,9 +53,9 @@ void update_motors()
   last_pwm_pulse= micros(); 
 
   // all PWM pins HIGH
-//PORTD |= B00001000; // Set digital port 3 high
-//  PORTD |= B01000000; // Set digital port 6 high
-//  PORTB |= B00001110; // Set digital port 9,10,11 high
+// PORTD |= B00001000; // Set digital port 3 high
+// PORTD |= B01000000; // Set digital port 6 high
+// PORTB |= B00001110; // Set digital port 9,10,11 high
 
   PORTD |= B11111000;  // set digital pins 4,5,6,7 high
 

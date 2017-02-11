@@ -35,11 +35,10 @@ void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
 #endif
-  Serial.begin(57600);
-      
-  DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
   system_check = INIT_CLEARED;
+      
+  DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
 /*
   EEPROM.get(0, eeprom_data);
@@ -78,10 +77,8 @@ void setup() {
   init_pid();
 
 #ifdef UNIT_TEST_MODE
-// unit test harness
   OCR0A = 0xAF;
   TIMSK0 |= _BV(OCIE0A); 
-// unit test harness  
 #endif
 
   timer = micros();
@@ -98,7 +95,10 @@ unsigned int guesture_count = 0;
 float throttle_input_gain = 0.0;
 float f_throttle = MIN_ESC_SIGNAL;
 
+#ifdef DEBUG
 int foo=4;
+#endif
+
 boolean calibartion_mode = false; // no pids, throttle max is 2000us
 void loop() {
 
@@ -111,10 +111,10 @@ void loop() {
   yaw_setpoint        = ppm_channels[4] ;  // Read ppm channel 4
 
   // 20us of deadband
-  if( pitch_setpoint    >= 1490 && pitch_setpoint     <= 1510 ) pitch_setpoint = 1500;
-  if( roll_setpoint     >= 1490 && roll_setpoint      <= 1510 ) roll_setpoint = 1500;  
+  if( pitch_setpoint    >= 1490 && pitch_setpoint     <= 1510 ) pitch_setpoint    = 1500;
+  if( roll_setpoint     >= 1490 && roll_setpoint      <= 1510 ) roll_setpoint     = 1500;  
   if( throttle_setpoint >= 1490 && throttle_setpoint  <= 1510 ) throttle_setpoint = 1500;  
-  if( yaw_setpoint      >= 1490 && yaw_setpoint       <= 1510 ) yaw_setpoint = 1500;  
+  if( yaw_setpoint      >= 1490 && yaw_setpoint       <= 1510 ) yaw_setpoint      = 1500;  
 
   ////////////////////////////////////////////////////////////////////
   // Simple Arm/Disarm.  Hold throttle at lowest position for 500ms
@@ -143,11 +143,17 @@ void loop() {
   // Simple Arm/Disarm. 
   ////////////////////////////////////////////////////////////////////
 
-
   // No YAW when throttle is at lowest position
   if( throttle_setpoint < 1050 ) {
     yaw_setpoint = 1500;
   }
+
+  // safety/testing
+  // only yaw when throttle is nuteral
+  if( throttle_setpoint != 1500 ) {
+    yaw_setpoint = 1500;
+  }  
+  // safety/testing
 
   // adjust so 1500 = Zero input
   throttle_setpoint = (throttle_setpoint - 1500) ;
@@ -157,22 +163,19 @@ void loop() {
 
   digitalWrite(12,HIGH);
 
-  // read_mpu_process(); // moved to the ESC PWM 1000us idle time
-  mpu_conversion_process();        
+  // read_mpu_process();      // moved the MPU read process to the ESC PWM 1000us idle time
+  mpu_conversion_process();   // apply LPF and convert to degress/sec and calculate the complinetary angles.
   
   digitalWrite(12,LOW);
 
-  // Serial.print(gyro[0]); Serial.print("\t"); Serial.println( compAngleX );
-  // Serial.print(gyro[0]); Serial.print("\t"); Serial.println( kalAngleX );
 #ifdef DEBUG  
-//  Serial.print( compAngleX );
-//  Serial.print( "\t" );
-//  Serial.println( compAngleY );
+//  Serial.print( compAngleX ); Serial.print( "\t" ); Serial.println( compAngleY );
 #endif  
 
   throttle_input_gain = throttle_setpoint / 600.0;
 
   if( calibartion_mode ) {
+    
     throttle = (int)( f_throttle += throttle_input_gain );
 
     if( f_throttle > MAX_ESC_SIGNAL ) f_throttle = MAX_ESC_SIGNAL;
@@ -202,12 +205,15 @@ void loop() {
     // READ BATTERY LEVEL
     // TODO:
 
+    if (throttle > 1800) throttle = 1800;     // leave some throttle room for the PID controller outputs.
+
     // DO MOTOR MIX ALGORITHM : X Setup
     va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW
     vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
     vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
     vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
 
+#ifdef DEBUG
     // Serial.print( ppm_channels[foo] );
     // Serial.print("\t");
 
@@ -222,6 +228,7 @@ void loop() {
     // yaw test
     // Serial.print( va ); Serial.print( "\t" ); Serial.println( vc );     // stick yaw right - increase  , hard left increase
     // Serial.print( vb ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease  
+#endif
 
     if( va < MIN_ESC_CUTOFF ) va = MIN_ESC_CUTOFF;
     if( vb < MIN_ESC_CUTOFF ) vb = MIN_ESC_CUTOFF;
@@ -233,13 +240,6 @@ void loop() {
     if( vc > MAX_ESC_SIGNAL ) vc = MAX_ESC_SIGNAL;
     if( vd > MAX_ESC_SIGNAL ) vd = MAX_ESC_SIGNAL;
 
-// debug / safety
-    if( va > 1600 ) va = 1600;
-    if( vb > 1600 ) vb = 1600;
-    if( vc > 1600 ) vc = 1600;
-    if( vd > 1600 ) vd = 1600;
-// debug / safety        
-   
   } else {
     
     pid_reset();
@@ -251,11 +251,11 @@ void loop() {
         
   }
 
-  // Serial.printf(F("%f\t%f\t%f\t%f\r\n"), va,vb,vc,vd);
-  
+#ifdef DEBUG
   Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );     // stick yaw right - increase  , hard left increase
   Serial.print( "\t" ); 
   Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease      
+#endif
   
   update_motors();
 

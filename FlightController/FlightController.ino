@@ -25,7 +25,7 @@ int yaw_setpoint      = 0;
 int throttle = MIN_ESC_SIGNAL;
 
 double dt = 0.0;
-double timer = 0.0;
+unsigned long  timer = 0;
 
 #include "MPU.h"
 #include "PID.h"

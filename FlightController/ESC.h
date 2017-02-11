@@ -1,5 +1,7 @@
-#define PWM_FERQUENCY 4000  // 250hz, very stable
-//#define PWM_FERQUENCY 3100 // 323hz, very stable
+#define PWM_FERQUENCY 4000 // 250hz, very stable
+//#define PWM_FERQUENCY 4000 // flight tested : works
+//#define PWM_FERQUENCY 3300 // flight tested : works
+//#define PWM_FERQUENCY 3100 // 323hz, untested
 
 unsigned long last_pwm_pulse = 0;
 unsigned long esc_pwm_timmer = 0;

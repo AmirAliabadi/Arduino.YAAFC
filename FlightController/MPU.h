@@ -56,12 +56,12 @@ double tmpr_read;
 
 float x_angle = 0.0;
 float y_angle = 0.0;
-double compAngleX = 0.0;
-double compAngleY = 0.0;
+double pitch_angle = 0.0;
+double roll_angle = 0.0;
 
 double gyro_offsets[3] = {0,0,0};
-double compAngleX_Offset = 0.0;
-double compAngleY_Offset = 0.0;
+double pitch_angle_offset = 0.0;
+double roll_angle_offset  = 0.0;
 
 // kalmanFilter
 //double kalAngleX = 0.0;
@@ -174,6 +174,10 @@ void read_mpu_process() {
   gyro_read[1] = (gyro_read[1] - gyro_offsets[1]) ; 
   gyro_read[2] = (gyro_read[2] - gyro_offsets[2]) ; 
 
+  //accl_read[0] *= pit_inverse;
+  //accl_read[1] *= rol_inverse;
+  //accl_read[2] *= yaw_inverse;
+
   if( system_check & INIT_ESC_ARMED ) {
     // convert to degrees/sec, with LPF 
     // not sure why but this helps even when the 6050 has the DLPF enabled.
@@ -204,24 +208,24 @@ void mpu_conversion_process() {
   /// ------------------------------------------------------------------------------------------
   // PITCH Restricted, calculate angles from accel data
   x_angle = atan2(accl_read[1], accl_read[2]) * RAD_TO_DEG;
-  y_angle = atan( -accl_read[0] / sqrt( (accl_read[1] * accl_read[1]) + (accl_read[2] * accl_read[2]) ) ) * RAD_TO_DEG;
+  y_angle = atan(-accl_read[0] / sqrt( (accl_read[1] * accl_read[1]) + (accl_read[2] * accl_read[2]) ) ) * RAD_TO_DEG;
 
   //x_angle = 57.295*atan((float) accl_read[1]/ sqrt(pow((float)accl_read[2],2)+pow((float)accl_read[0],2)));
   //y_angle = 57.295*atan((float)-accl_read[0]/ sqrt(pow((float)accl_read[2],2)+pow((float)accl_read[1],2))); 
 
   // This fixes the transition problem when the accelerometer angle jumps between -180 and 180 degrees  
   if ( x_angle < -90 || x_angle > 90 ) {
-    compAngleX = x_angle;
+    pitch_angle = x_angle;
     //gyroXangle = roll;
   }  
 
   /// ------------------------------------------------------------------------------------------
   /// use a comlementary filter to compute a more reliable x/y angle by using gyro data + accel data
-  compAngleX = 0.93 * (compAngleX + gyro_pitch * dt) + 0.07 * x_angle; // Calculate the angle using a Complimentary filter
-  compAngleY = 0.93 * (compAngleY + gyro_roll  * dt) + 0.07 * y_angle;  
+  pitch_angle = 0.93 * (pitch_angle + gyro_pitch * dt) + 0.07 * x_angle; // Calculate the pitch_angle using a complementary filter
+  roll_angle  = 0.93 * (roll_angle  + gyro_roll  * dt) + 0.07 * y_angle;  
 
-  compAngleX = (compAngleX - compAngleX_Offset) ;// * compAngleX_Invert;
-  compAngleY = (compAngleY - compAngleY_Offset) ;// * compAngleY_Invert;
+  pitch_angle = (pitch_angle - pitch_angle_offset) ;// * compAngleX_Invert;
+  roll_angle  = (roll_angle  - roll_angle_offset ) ;// * compAngleY_Invert;
 
   //kalAngleX = kalmanX.getAngle(x_angle, gyro[0], dt);
   //kalAngleY = kalmanY.getAngle(y_angle, gyro[1], dt);     
@@ -309,8 +313,6 @@ void calibrate_accl() {
 #ifdef DEBUG
     Serial.println( "calibrate_accl" );
 #endif
-  
-  double temp_accl_offsets[3] = {0,0,0};
 
   delay(10000); // wait for things to stabalize
 
@@ -320,9 +322,9 @@ void calibrate_accl() {
 
   // use that as the complementary angle offset
   // best plan here is to do this once and save it in the eeprom
-  compAngleX_Offset = compAngleX;
-  compAngleY_Offset = compAngleY;    
-  
+  pitch_angle_offset = pitch_angle;
+  roll_angle_offset = roll_angle;    
+ 
 }
 
 void calibrate() {
@@ -339,9 +341,9 @@ void calibrate() {
     Serial.println(  gyro_offsets[2] );
 
     Serial.print( "compAngle Offsets: " );
-    Serial.print( compAngleX_Offset );
+    Serial.print( pitch_angle_offset );
     Serial.print( "\t" );
-    Serial.println( compAngleY_Offset );    
+    Serial.println( roll_angle_offset );    
     
     Serial.println( "calibrate done" );
 #endif

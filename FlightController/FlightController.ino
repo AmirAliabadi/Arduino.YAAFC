@@ -5,7 +5,7 @@
 #include <Wire.h>
 //#include <Kalman.h> twice as slow as complementary filer
 
-//#define DEBUG
+#define DEBUG
 #include "FlightController.h"
 #include "PPM.h"
 
@@ -168,10 +168,6 @@ void loop() {
   
   digitalWrite(12,LOW);
 
-#ifdef DEBUG  
-//  Serial.print( compAngleX ); Serial.print( "\t" ); Serial.println( compAngleY );
-#endif  
-
   throttle_input_gain = throttle_setpoint / 600.0;
 
   if( calibartion_mode ) {
@@ -252,9 +248,12 @@ void loop() {
   }
 
 #ifdef DEBUG
-  Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );     // stick yaw right - increase  , hard left increase
-  Serial.print( "\t" ); 
-  Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease      
+  // Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( roll_angle  );
+  Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( gyro_pitch  );
+
+  //Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );     // stick yaw right - increase  , hard left increase
+  //Serial.print( "\t" ); 
+  ///Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease      
 #endif
   
   update_motors();

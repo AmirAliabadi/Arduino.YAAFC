@@ -2,12 +2,10 @@
 
 #include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
 #include <Wire.h>
-//#include <Kalman.h> twice as slow as complementary filer
 
 #define DEBUG
-//#define UNIT_TEST_MODE
 
-#include "FlightController.h"
+#include "Setup.h"
 
 // input values from receiver
 // ranges from 1000 to 2000 (ms)
@@ -15,9 +13,6 @@ int throttle_setpoint = 0;
 int pitch_setpoint    = 0;
 int roll_setpoint     = 0;
 int yaw_setpoint      = 0;
-
-//Kalman kalmanX; // Create the Kalman instances
-//Kalman kalmanY;
 
 // using a center stick throttle
 // throttle value accumulates or decays bases on throttle_input
@@ -64,27 +59,17 @@ void setup() {
   ppm_channels[3] = 1500;
   ppm_channels[4] = 1500;
 
-#ifndef UNIT_TEST_MODE
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
 
   while( !ppm_sync ) ;        // wait for ppm sync
   wait_for_initial_inputs();  // wait for all stick to be neutral
-#endif  
 
   init_mpu();
   calibrate();
   init_esc();
   init_pid();
 
-#ifdef UNIT_TEST_MODE
-  OCR0A = 0xAF;
-  TIMSK0 |= _BV(OCIE0A); 
-#endif
-
   timer = micros();
-
-//  kalmanX.setAngle(0);
-//  kalmanY.setAngle(0);
 
 #ifdef DEBUG
     Serial.println( "init_comleted" );
@@ -95,9 +80,6 @@ unsigned int guesture_count = 0;
 float throttle_input_gain = 0.0;
 float f_throttle = MIN_ESC_SIGNAL;
 
-#ifdef DEBUG
-int foo=4;
-#endif
 
 boolean calibartion_mode = false; // no pids, throttle max is 2000us
 void loop() {
@@ -258,46 +240,3 @@ void loop() {
 
 }
 
-#ifdef UNIT_TEST_MODE
-// unit test harness
-volatile int aa_dir = 10;
-volatile unsigned long my_counter = 0;
-// Interrupt is called once a millisecond
-SIGNAL(TIMER0_COMPA_vect) 
-{
-  my_counter ++ ;
-  if( my_counter == 10 ) {
-        
-    if( system_check & INIT_PID_ON ) {
-  
-        if( system_check & INIT_ESC_ARMED ) {
-
-          if( throttle < 1400 ) {
-            ppm_channels[3] = 1600;
-          } else {
-            ppm_channels[3] = 1500;
-
-
-            if( ppm_channels[foo] >= 1800 || ppm_channels[foo] <= 1200 ) {
-              aa_dir = aa_dir * -1;
-            }
-
-            ppm_channels[foo] += aa_dir ;
-          }
-          
-        } else {
-          ppm_channels[3] = 1000;
-          
-        }
-    
-      //ppm_channels[1] ;  // roll
-      //ppm_channels[2] ;  // pitch
-      //ppm_channels[3] ;  // throttle
-      //ppm_channels[4] ;  // yaw
-
-      }
-
-      my_counter = 0;      
-  }
-}
-#endif

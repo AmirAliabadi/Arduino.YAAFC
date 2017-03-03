@@ -245,8 +245,8 @@ void loop() {
 #ifdef DEBUG
   // Serial.println( accl_read[2] );
 
-  // Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( roll_angle  );
-  // Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( gyro_pitch  );
+  Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( roll_angle  );
+  //Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( gyro_pitch  );
 
   //Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );     
   //Serial.println("");

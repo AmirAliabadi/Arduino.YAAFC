@@ -67,6 +67,7 @@ void do_pid_compute()
     // COMPUTE PITCH PID
 
     // pitch_angle
+    // (pitch_setpoint - 15) / 3.0
     
     pid_error = gyro_pitch - pitch_setpoint ; 
     pitch_pid_term[0] = p_pid_gains[0] * pid_error;                     // pTerm;    
@@ -88,6 +89,7 @@ void do_pid_compute()
     // COMPUTE ROLL PID
 
     // roll_angle
+    // (roll_setpoint - 15) / 3.0
     
     pid_error = gyro_roll - roll_setpoint;     
     roll_pid_term[0] = r_pid_gains[0] * pid_error;                      // pTerm;    

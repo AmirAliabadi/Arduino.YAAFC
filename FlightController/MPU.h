@@ -37,9 +37,11 @@
 
 #define MPU6050_RA_FIFO_EN          0x23
 
-int  pit_inverse = -1;
-int  rol_inverse = -1;
-int  yaw_inverse = -1;
+int  gyro_pit_inverse = -1;
+int  gyro_rol_inverse = -1;
+int  gyro_yaw_inverse = -1;
+int  accel_x_inverse = -1;
+int  accel_y_inverse = -1;
 
 double gyro_read_x, gyro_read_y, gyro_read_z;
 double gyro_pitch = 0.0;
@@ -180,14 +182,14 @@ void read_mpu_process() {
   if( system_check & INIT_ESC_ARMED ) {
     // convert to degrees/sec, with LPF 
     // not sure why but this helps even when the 6050 has the DLPF enabled.
-    gyro_pitch  = (gyro_pitch * 0.8)  + (( (gyro_read_x * pit_inverse) / 65.5) * 0.2); 
-    gyro_roll   = (gyro_roll  * 0.8)  + (( (gyro_read_y * rol_inverse) / 65.5) * 0.2); 
-    gyro_yaw    = (gyro_yaw   * 0.8)  + (( (gyro_read_z * yaw_inverse) / 65.5) * 0.2); 
+    gyro_pitch  = (gyro_pitch * 0.8)  + (( (gyro_read_x * gyro_pit_inverse) / 65.5) * 0.2); 
+    gyro_roll   = (gyro_roll  * 0.8)  + (( (gyro_read_y * gyro_rol_inverse) / 65.5) * 0.2); 
+    gyro_yaw    = (gyro_yaw   * 0.8)  + (( (gyro_read_z * gyro_yaw_inverse) / 65.5) * 0.2); 
   } else {
     // convert to degrees/sec, no LPF
-    gyro_pitch  = ((gyro_read_x * pit_inverse) / 65.5);
-    gyro_roll   = ((gyro_read_y * rol_inverse) / 65.5);
-    gyro_yaw    = ((gyro_read_z * yaw_inverse) / 65.5);      
+    gyro_pitch  = ((gyro_read_x * gyro_pit_inverse) / 65.5);
+    gyro_roll   = ((gyro_read_y * gyro_rol_inverse) / 65.5);
+    gyro_yaw    = ((gyro_read_z * gyro_yaw_inverse) / 65.5);      
   }  
 
 // roll right, gryo increase
@@ -221,11 +223,11 @@ void mpu_conversion_process() {
 
   /// ------------------------------------------------------------------------------------------
   /// use a comlementary filter to compute a more reliable x/y angle by using gyro data + accel data
-  pitch_angle = 0.93 * (pitch_angle + gyro_pitch * dt) + 0.07 * x_angle; // Calculate the pitch_angle using a complementary filter
-  roll_angle  = 0.93 * (roll_angle  + gyro_roll  * dt) + 0.07 * y_angle;  
+  pitch_angle = 0.93 * (pitch_angle + gyro_pitch * dt) + 0.07 * x_angle * accel_x_inverse; // Calculate the pitch_angle using a complementary filter
+  roll_angle  = 0.93 * (roll_angle  + gyro_roll  * dt) + 0.07 * y_angle * accel_y_inverse;  
 
-  pitch_angle = (pitch_angle - pitch_angle_offset) ;// * compAngleX_Invert;
-  roll_angle  = (roll_angle  - roll_angle_offset ) ;// * compAngleY_Invert;
+  pitch_angle = (pitch_angle - pitch_angle_offset) ; 
+  roll_angle  = (roll_angle  - roll_angle_offset ) ; 
 
   //kalAngleX = kalmanX.getAngle(x_angle, gyro[0], dt);
   //kalAngleY = kalmanY.getAngle(y_angle, gyro[1], dt);     

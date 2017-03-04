@@ -245,13 +245,22 @@ void loop() {
 #ifdef DEBUG
   // Serial.println( accl_read[2] );
 
-  Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( roll_angle  );
+  //Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( roll_angle  );
   //Serial.print( pitch_angle ); Serial.print( "\t" ); Serial.println( gyro_pitch  );
 
-  //Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );     
+/*
+  Serial.print( gyro_pitch - ((pitch_angle - pitch_setpoint/15.0) * .5 ) );
+  Serial.print( "\t" ); 
+  Serial.println( gyro_roll - ((roll_angle - roll_setpoint/15.0) * .5 ) );
+*/  
+
+/*
+  Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );     
   //Serial.println("");
-  //Serial.print( "\t" ); 
-  //Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd ); 
+  Serial.print( "\t" ); 
+  Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd ); 
+*/
+  
 #endif
   
   update_motors();

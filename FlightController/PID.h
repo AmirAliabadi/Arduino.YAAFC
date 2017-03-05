@@ -4,9 +4,9 @@
  *  pitch/roll : 1.04, 0.05, 15
  */
 
-float y_pid_gains[3]  = {5.00, 0.00,  00.0};
-float p_pid_gains[3]  = {1.04, 0.04,  15.0};
-float r_pid_gains[3]  = {1.04, 0.04,  15.0};
+float   attitude_pTerm   = 0.50;
+float  yaw_pid_gains[3]  = {5.00, 0.00,  00.0};
+float rate_pid_gains[3]  = {1.04, 0.04,  15.0};
 
 float yaw_pid_term[3]      = {0,0,0};
 float pitch_pid_term[3]    = {0,0,0};
@@ -53,9 +53,9 @@ void do_pid_compute()
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // COMPUTE YAW PID
     pid_error = gyro_yaw - yaw_setpoint ;
-    yaw_pid_term[0] = y_pid_gains[0] * pid_error;                     // pTerm;
-    yaw_pid_term[2] = y_pid_gains[2] * ( pid_error - y_last_error );  // dTerm = dGain * (current error - last_error)
-    y_last_error = pid_error;                                         // update yaw last_error for next time
+    yaw_pid_term[0] = yaw_pid_gains[0] * pid_error;                     // pTerm;
+    yaw_pid_term[2] = yaw_pid_gains[2] * ( pid_error - y_last_error );  // dTerm = dGain * (current error - last_error)
+    y_last_error = pid_error;                                           // update yaw last_error for next time
 
     yaw_pid_rate_out  = yaw_pid_term[0] + yaw_pid_term[1] + yaw_pid_term[2] ;
 
@@ -71,13 +71,13 @@ void do_pid_compute()
     // attitude_error = ((pitch_angle - pitch_setpoint) * .5 )
     
     //pid_error = gyro_pitch - pitch_setpoint ; 
-    pid_error = gyro_pitch + ((pitch_angle - pitch_setpoint/15.0) * .5 ) ; 
+    pid_error = gyro_pitch + ( attitude_pTerm * (pitch_angle - pitch_setpoint/15.0) ) ; 
     
-    pitch_pid_term[0] = p_pid_gains[0] * pid_error;                     // pTerm;    
-    pitch_pid_term[2] = p_pid_gains[2] * ( pid_error - p_last_error );  // dTerm = dGain * (current error - last_error)
-    p_last_error = pid_error;                                           // update pitch last_error for next time
+    pitch_pid_term[0] = rate_pid_gains[0] * pid_error;                      // pTerm;    
+    pitch_pid_term[2] = rate_pid_gains[2] * ( pid_error - p_last_error );   // dTerm = dGain * (current error - last_error)
+    p_last_error = pid_error;                                               // update pitch last_error for next time
     
-    pitch_pid_term[1] += p_pid_gains[1] * pid_error;                    // integrate the iTerm
+    pitch_pid_term[1] += rate_pid_gains[1] * pid_error;                     // integrate the iTerm
 
     if( pitch_pid_term[1] >  400.0 ) pitch_pid_term[1] =  400.0;
     if( pitch_pid_term[1] < -400.0 ) pitch_pid_term[1] = -400.0;    
@@ -97,13 +97,13 @@ void do_pid_compute()
 
     
     //pid_error = gyro_roll - roll_setpoint;  
-    pid_error = gyro_roll + ((roll_angle - roll_setpoint/15.0) * .5 ) ; 
+    pid_error = gyro_roll + ( attitude_pTerm * (roll_angle - roll_setpoint/15.0) ) ; 
        
-    roll_pid_term[0] = r_pid_gains[0] * pid_error;                      // pTerm;    
-    roll_pid_term[2] = r_pid_gains[2] * ( pid_error - r_last_error );   // dTerm = dGain * (current error - last_error)    
-    r_last_error = pid_error;                                           // update roll last_error for next time   
+    roll_pid_term[0] = rate_pid_gains[0] * pid_error;                       // pTerm;    
+    roll_pid_term[2] = rate_pid_gains[2] * ( pid_error - r_last_error );    // dTerm = dGain * (current error - last_error)    
+    r_last_error = pid_error;                                               // update roll last_error for next time   
 
-    roll_pid_term[1] += r_pid_gains[1] * pid_error;                     //  integrate the iTerm
+    roll_pid_term[1] += rate_pid_gains[1] * pid_error;                      //  integrate the iTerm
     if( roll_pid_term[1] >  400.0 ) roll_pid_term[1] =  400.0;
     if( roll_pid_term[1] < -400.0 ) roll_pid_term[1] = -400.0;    
     

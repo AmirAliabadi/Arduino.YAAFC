@@ -66,7 +66,6 @@ void setup() {
 
 #ifndef UNIT_TEST_MODE
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
-
   while( !ppm_sync ) ;        // wait for ppm sync
   wait_for_initial_inputs();  // wait for all stick to be neutral
 #endif  
@@ -196,7 +195,7 @@ void loop() {
     // READ BATTERY LEVEL
     // TODO:
 
-    if (throttle > 1800) throttle = 1800;     // leave some throttle room for the PID controller outputs.
+    if (throttle > 1800) throttle = 1800;     // leave room for the PID controllers
 
     // DO MOTOR MIX ALGORITHM : X Setup
     va = throttle - pitch_pid_rate_out + roll_pid_rate_out - yaw_pid_rate_out; // front right - CCW

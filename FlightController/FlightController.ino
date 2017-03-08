@@ -15,6 +15,10 @@ int throttle_setpoint = 0;
 int pitch_setpoint    = 0;
 int roll_setpoint     = 0;
 int yaw_setpoint      = 0;
+int aux_1;
+int aux_2;
+int aux_3;
+int aux_4;
 
 //Kalman kalmanX; // Create the Kalman instances
 //Kalman kalmanY;
@@ -119,6 +123,10 @@ void loop() {
   pitch_setpoint      = ppm_channels[2] ;  // Read ppm channel 2
   throttle_setpoint   = ppm_channels[3] ;  // Read ppm channel 3
   yaw_setpoint        = ppm_channels[4] ;  // Read ppm channel 4
+  aux_1               = ppm_channels[5] ;  // Read ppm channel 4
+  aux_2               = ppm_channels[6] ;  // Read ppm channel 4
+  aux_3               = ppm_channels[7] ;  // Read ppm channel 4
+  aux_4               = ppm_channels[8] ;  // Read ppm channel 4
 
   // 20us of deadband
   if( pitch_setpoint    >= 1490 && pitch_setpoint     <= 1510 ) pitch_setpoint    = 1500;
@@ -270,6 +278,15 @@ void loop() {
   Serial.print( "\t" ); 
   Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd ); 
 */
+
+  Serial.print( roll_setpoint ); Serial.print("\t");
+  Serial.print( pitch_setpoint ); Serial.print("\t");
+  Serial.print( throttle_setpoint ); Serial.print("\t");
+  Serial.print( yaw_setpoint ); Serial.print("\t");
+  Serial.print( aux_1 ); Serial.print("\t");
+  Serial.print( aux_2 ); Serial.print("\t");
+  Serial.print( aux_3 ); Serial.print("\t");
+  Serial.println( aux_4 ); 
   
 #endif
   

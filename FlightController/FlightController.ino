@@ -59,6 +59,7 @@ void setup() {
   Wire.begin();
   Wire.setClock(400000L);   // i2c at 400k Hz
 
+  ppm_channels[0] = 0;  // sync channel
   ppm_channels[1] = 1500;
   ppm_channels[2] = 1500;
   ppm_channels[3] = 1500;

@@ -8,7 +8,7 @@ volatile unsigned long  last_ppm_clock = 9999;
 volatile unsigned long  current_ppm_clock = 0;
 volatile unsigned long  ppm_dt = 0;
 volatile unsigned short ppm_current_channel = 99;
-volatile unsigned int   ppm_channels[11] = {0,0,0,0,0,0,0,0,0,0,0}; // at most 10 channels (sync chaneel + 10 = 11)
+volatile unsigned int   ppm_channels[9] = {0,0,0,0,0,0,0,0,0}; // at most 10 channels (sync chaneel + 8 = 9)
 
 volatile unsigned short sync_loss_counter = 0;
 void ppmRising() {

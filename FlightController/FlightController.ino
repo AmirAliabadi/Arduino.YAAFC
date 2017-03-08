@@ -75,10 +75,10 @@ void setup() {
 
 #ifndef UNIT_TEST_MODE
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
-#ifdef DEBUG
-  delay(50);
-  if( !ppm_sync ) Serial.println("Power on Transmitter");
-#endif
+  #ifdef DEBUG
+    delay(50);
+    if( !ppm_sync ) Serial.println("Power on Transmitter");
+  #endif
   while( !ppm_sync ) {
     delay(10);        // wait for ppm sync
   }
@@ -119,14 +119,14 @@ void loop() {
   dt = (double)(micros() - timer) / 1000000; // Calculate delta time
   timer = micros();
 
-  roll_setpoint       = ppm_channels[1] ;  // Read ppm channel 1
-  pitch_setpoint      = ppm_channels[2] ;  // Read ppm channel 2
-  throttle_setpoint   = ppm_channels[3] ;  // Read ppm channel 3
-  yaw_setpoint        = ppm_channels[4] ;  // Read ppm channel 4
-  aux_1               = ppm_channels[5] ;  // Read ppm channel 4
-  aux_2               = ppm_channels[6] ;  // Read ppm channel 4
-  aux_3               = ppm_channels[7] ;  // Read ppm channel 4
-  aux_4               = ppm_channels[8] ;  // Read ppm channel 4
+  cli(); roll_setpoint       = ppm_channels[1] ;  sei(); // Read ppm channel 1
+  cli(); pitch_setpoint      = ppm_channels[2] ;  sei(); // Read ppm channel 2
+  cli(); throttle_setpoint   = ppm_channels[3] ;  sei(); // Read ppm channel 3
+  cli(); yaw_setpoint        = ppm_channels[4] ;  sei(); // Read ppm channel 4
+  cli(); aux_1               = ppm_channels[5] ;  sei(); // Read ppm channel 5
+  cli(); aux_2               = ppm_channels[6] ;  sei(); // Read ppm channel 6
+  cli(); aux_3               = ppm_channels[7] ;  sei(); // Read ppm channel 7
+  cli(); aux_4               = ppm_channels[8] ;  sei(); // Read ppm channel 8
 
   // 20us of deadband
   if( pitch_setpoint    >= 1490 && pitch_setpoint     <= 1510 ) pitch_setpoint    = 1500;
@@ -179,7 +179,7 @@ void loop() {
   // read_mpu_process();      // 784us : gyro+accel raw reads with LPF : moved the MPU read process to the ESC PWM 1000us idle time
   mpu_conversion_process();   // 544us : convert to degress/sec and calculate angles using complinetary filter.
   
-  digitalWrite(12,LOW);
+  //digitalWrite(12,LOW);
 
   throttle_input_gain = throttle_setpoint / 600.0;
 
@@ -279,6 +279,7 @@ void loop() {
   Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd ); 
 */
 
+/*
   Serial.print( roll_setpoint ); Serial.print("\t");
   Serial.print( pitch_setpoint ); Serial.print("\t");
   Serial.print( throttle_setpoint ); Serial.print("\t");
@@ -287,6 +288,7 @@ void loop() {
   Serial.print( aux_2 ); Serial.print("\t");
   Serial.print( aux_3 ); Serial.print("\t");
   Serial.println( aux_4 ); 
+*/  
   
 #endif
   

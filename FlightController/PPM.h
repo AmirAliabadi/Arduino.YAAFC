@@ -4,7 +4,7 @@
 // INT range : -32,768 to 32,767 
 
 volatile boolean        ppm_sync = false;
-volatile unsigned long  last_ppm_clock = 9999;
+volatile unsigned long  last_ppm_clock = 29999;
 volatile unsigned long  current_ppm_clock = 0;
 volatile unsigned long  ppm_dt = 0;
 volatile unsigned short ppm_current_channel = 99;
@@ -16,11 +16,11 @@ void ppmRising() {
   ppm_dt = current_ppm_clock - last_ppm_clock;
 
   if( ppm_sync == false ) {
-    if( ppm_dt >= 8500 ) {
+    if( ppm_dt > 15000 ) {
       if( sync_loss_counter < 10 ) {
         sync_loss_counter ++;
       }
-    } else if( ppm_dt >= 3500 ) {
+    } else if( ppm_dt > 3000 ) {
       ppm_current_channel = 0;
       ppm_channels[ppm_current_channel] = ppm_dt;
       if( sync_loss_counter > 0 ) sync_loss_counter --;

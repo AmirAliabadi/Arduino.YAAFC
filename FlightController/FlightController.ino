@@ -63,10 +63,20 @@ void setup() {
   ppm_channels[2] = 1500;
   ppm_channels[3] = 1500;
   ppm_channels[4] = 1500;
+  ppm_channels[5] = 1500;
+  ppm_channels[6] = 1500;
+  ppm_channels[7] = 1500;
+  ppm_channels[8] = 1500;
 
 #ifndef UNIT_TEST_MODE
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
-  while( !ppm_sync ) ;        // wait for ppm sync
+#ifdef DEBUG
+  delay(50);
+  if( !ppm_sync ) Serial.println("Power on Transmitter");
+#endif
+  while( !ppm_sync ) {
+    delay(10);        // wait for ppm sync
+  }
   wait_for_initial_inputs();  // wait for all stick to be neutral
 #endif  
 
@@ -155,7 +165,7 @@ void loop() {
   roll_setpoint     = (roll_setpoint     - 1500) ;
   yaw_setpoint      = (yaw_setpoint      - 1500) ;   
 
-  digitalWrite(12,HIGH);
+  //digitalWrite(12,HIGH);
 
   // read_mpu_process();      // 784us : gyro+accel raw reads with LPF : moved the MPU read process to the ESC PWM 1000us idle time
   mpu_conversion_process();   // 544us : convert to degress/sec and calculate angles using complinetary filter.

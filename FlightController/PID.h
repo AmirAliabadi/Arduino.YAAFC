@@ -4,9 +4,9 @@
  *  pitch/roll : 1.04, 0.05, 15
  */
 
-float   attitude_pTerm   = 0.50;
-float  yaw_pid_gains[3]  = {5.00, 0.00,  00.0};
-float rate_pid_gains[3]  = {1.04, 0.04,  15.0};
+float    attitude_pTerm  = 0.60;
+float  yaw_pid_gains[3]  = {4.00, 0.02,  00.0};
+float rate_pid_gains[3]  = {1.03, 0.04,  18.0};
 
 float yaw_pid_term[3]      = {0,0,0};
 float pitch_pid_term[3]    = {0,0,0};
@@ -69,7 +69,7 @@ void do_pid_compute()
     // pitch_angle
     // (pitch_setpoint - 15) / 3.0
     // attitude_error = ((pitch_angle - pitch_setpoint) * .5 )
-    
+
     //pid_error = gyro_pitch - pitch_setpoint ; 
     pid_error = gyro_pitch + ( attitude_pTerm * (pitch_angle - pitch_setpoint/15.0) ) ; 
     

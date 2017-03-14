@@ -113,8 +113,13 @@ float f_throttle = MIN_ESC_SIGNAL;
 int foo=4;
 #endif
 
+int yaw_trim_ticks = 0;
+int yaw_trim = 0;
+
+
 boolean calibartion_mode = false; // no pids, throttle max is 2000us
 void loop() {
+  digitalWrite(12,!digitalRead(12));  
 
   dt = (double)(micros() - timer) / 1000000; // Calculate delta time
   timer = micros();
@@ -133,6 +138,52 @@ void loop() {
   if( roll_setpoint     >= 1490 && roll_setpoint      <= 1510 ) roll_setpoint     = 1500;  
   if( throttle_setpoint >= 1490 && throttle_setpoint  <= 1510 ) throttle_setpoint = 1500;  
   if( yaw_setpoint      >= 1490 && yaw_setpoint       <= 1510 ) yaw_setpoint      = 1500;  
+  if( aux_3             >= 1390 && aux_3              <= 1610 ) aux_3             = 1500; 
+
+
+  if( aux_1 < 1150 ) attitude_pTerm_index = 0;
+  else if( aux_1 > 1850 ) attitude_pTerm_index = 1;
+  else aux_1 = attitude_pTerm_index = 2;
+
+  if( aux_2 < 1150 ) aux_2 = 1000;
+  else if( aux_2 > 1850 ) aux_2 = 2000;
+  else aux_2 = aux_2 = 1500;    
+
+  if( aux_4 < 1150 ) aux_4 = 1000;
+  else if( aux_4 > 1850 ) aux_4 = 2000;
+  else aux_4 = aux_4 = 1500;  
+
+  ////////////////////////////////////////////////////////////////
+  // use trim wheel input to trim the yaw 
+  if( aux_3 != 1500 ) yaw_trim_ticks += 1;
+  else yaw_trim_ticks = 0;
+
+  if( aux_4 == 1000 ) {
+    if( yaw_trim_ticks > 50 ) {
+      if( aux_3 < 1500) yaw_trim -= 1;
+      else if( aux_3 > 1500 ) yaw_trim += 1;
+      yaw_trim_ticks = 0; 
+    }
+    if( yaw_trim >  150 )  yaw_trim =  150;
+    if( yaw_trim < -150 )  yaw_trim = -150;
+  } else if ( aux_4 == 1500 ) {
+    if( yaw_trim_ticks > 50 ) {
+      yaw_trim_ticks = 0; 
+    }
+    if( yaw_trim >  150 )  yaw_trim =  150;
+    if( yaw_trim < -150 )  yaw_trim = -150;    
+  } else if ( aux_4 == 2000 ) {
+    if( yaw_trim_ticks > 50 ) {
+      yaw_trim_ticks = 0; 
+    }
+    if( yaw_trim >  150 )  yaw_trim =  150;
+    if( yaw_trim < -150 )  yaw_trim = -150;    
+  } else {
+    yaw_trim_ticks = 0;
+  }
+  //
+  ////////////////////////////////////////////////////////////////
+  
 
   ////////////////////////////////////////////////////////////////////
   // Simple Arm/Disarm.  Hold throttle at lowest position for 500ms
@@ -188,15 +239,22 @@ void loop() {
     throttle = (int)( f_throttle += throttle_input_gain );
 
     if( f_throttle > MAX_ESC_SIGNAL ) f_throttle = MAX_ESC_SIGNAL;
-    if( f_throttle < MIN_ESC_CUTOFF ) f_throttle = MIN_ESC_CUTOFF;    
+    if( f_throttle < MIN_ESC_SIGNAL ) f_throttle = MIN_ESC_SIGNAL;    
 
     if( throttle > MAX_ESC_SIGNAL ) throttle = MAX_ESC_SIGNAL;
-    if( throttle < MIN_ESC_CUTOFF ) throttle = MIN_ESC_CUTOFF;    
+    if( throttle < MIN_ESC_SIGNAL ) throttle = MIN_ESC_SIGNAL;    
 
     va = throttle ; // front right - CCW
     vb = throttle ; // front left  -  CW
     vc = throttle ; // back left   - CCW
     vd = throttle ; // back right  -  CW   
+
+#ifdef DEBUG
+    Serial.print("Calibration Mode: ");
+    Serial.print( va ); Serial.print( "\t" ); Serial.print( vb );
+    Serial.print( "\t" );
+    Serial.print( vc ); Serial.print( "\t" ); Serial.println( vd );
+#endif
     
   } else  if( system_check & INIT_ESC_ARMED ) {
 
@@ -221,6 +279,11 @@ void loop() {
     vb = throttle + pitch_pid_rate_out + roll_pid_rate_out + yaw_pid_rate_out; // front left  -  CW
     vc = throttle + pitch_pid_rate_out - roll_pid_rate_out - yaw_pid_rate_out; // back left   - CCW
     vd = throttle - pitch_pid_rate_out - roll_pid_rate_out + yaw_pid_rate_out; // back right  -  CW
+
+    va += yaw_trim;
+    vc += yaw_trim;
+    vb -= yaw_trim;
+    vd -= yaw_trim;
 
 #ifdef DEBUG
     // Serial.print( ppm_channels[foo] );
@@ -288,8 +351,27 @@ void loop() {
   Serial.print( aux_2 ); Serial.print("\t");
   Serial.print( aux_3 ); Serial.print("\t");
   Serial.println( aux_4 ); 
+
+  Serial.print( aux_3 );
+  Serial.print( "\t" );
+  Serial.print( f_yaw_trim );
+  Serial.print( "\t" );
+  Serial.println( yaw_trim );  
 */  
-  
+#endif
+
+#ifdef DEBUG
+ // Serial.print( gyro_read_z );
+ // Serial.print( "\t" );
+ // Serial.print( accl_read_z );
+ // Serial.print( "\t" );
+  Serial.print( gyro_yaw );
+  Serial.print( "\t" );
+  Serial.print( yaw_setpoint );
+  Serial.print( "\t" );
+  Serial.print( va ); Serial.print( "\t" ); Serial.print( vc );     // stick yaw right - increase  , hard left increase
+  Serial.print( "\t" ); 
+  Serial.print( vb ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease    
 #endif
   
   update_motors();

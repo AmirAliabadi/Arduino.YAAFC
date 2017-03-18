@@ -4,8 +4,7 @@
  *  pitch/roll : 1.04, 0.05, 15
  */
 
-int attitude_pTerm_index = 0;
-float attitude_pTerm[3]  = {0.60, 0.75,  0.88};
+float attitude_pTerm     = 0.60;
 float  yaw_pid_gains[3]  = {4.00, 0.02,  00.0};
 float rate_pid_gains[3]  = {1.03, 0.04,  18.0};
 
@@ -29,6 +28,18 @@ void init_pid()
 #endif
   
   system_check |= INIT_PID_ON ;
+}
+
+void reset_to_defaults() {
+  attitude_pTerm      = 0.60;
+  
+  yaw_pid_gains[0]    = 4.00;
+  yaw_pid_gains[1]    = 0.02;
+  yaw_pid_gains[2]    = 00.0;
+  
+  rate_pid_gains[0]   = 1.03;
+  rate_pid_gains[1]   = 0.04;
+  rate_pid_gains[2]   = 18.0;
 }
 
 void pid_reset() 
@@ -77,7 +88,7 @@ void do_pid_compute()
     // attitude_error = ((pitch_angle - pitch_setpoint) * .5 )
 
     //pid_error = gyro_pitch - pitch_setpoint ; 
-    pid_error = gyro_pitch + ( attitude_pTerm[attitude_pTerm_index] * (pitch_angle - pitch_setpoint/15.0) ) ; 
+    pid_error = gyro_pitch + ( attitude_pTerm * (pitch_angle - pitch_setpoint/15.0) ) ; 
     
     pitch_pid_term[0] = rate_pid_gains[0] * pid_error;                          // pTerm;    
     pitch_pid_term[2] = rate_pid_gains[2] * ( pid_error - pitch_last_error );   // dTerm = dGain * (current error - last_error)
@@ -103,7 +114,7 @@ void do_pid_compute()
 
     
     //pid_error = gyro_roll - roll_setpoint;  
-    pid_error = gyro_roll + ( attitude_pTerm[attitude_pTerm_index] * (roll_angle - roll_setpoint/15.0) ) ; 
+    pid_error = gyro_roll + ( attitude_pTerm * (roll_angle - roll_setpoint/15.0) ) ; 
        
     roll_pid_term[0] = rate_pid_gains[0] * pid_error;                           // pTerm;    
     roll_pid_term[2] = rate_pid_gains[2] * ( pid_error - roll_last_error );     // dTerm = dGain * (current error - last_error)    

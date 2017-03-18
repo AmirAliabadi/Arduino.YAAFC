@@ -9,6 +9,8 @@
 
 #include "FlightController.h"
 
+byte aux_1_index, aux_2_index, aux_3_index, aux_4_index;
+
 // input values from receiver
 // ranges from 1000 to 2000 (ms)
 int throttle_setpoint = 0;
@@ -35,6 +37,7 @@ unsigned long  timer = 0;
 #include "MPU.h"
 #include "PID.h"
 #include "ESC.h"
+
 
 void setup() {
 #ifdef DEBUG
@@ -113,9 +116,10 @@ float f_throttle = MIN_ESC_SIGNAL;
 int foo=4;
 #endif
 
-int yaw_trim_ticks = 0;
-int yaw_trim = 0;
+int c_trim_ticks = 0;
+int c_trim = 0;
 
+int yaw_trim = 0;
 
 boolean calibartion_mode = false; // no pids, throttle max is 2000us
 void loop() {
@@ -138,79 +142,129 @@ void loop() {
   if( roll_setpoint     >= 1490 && roll_setpoint      <= 1510 ) roll_setpoint     = 1500;  
   if( throttle_setpoint >= 1490 && throttle_setpoint  <= 1510 ) throttle_setpoint = 1500;  
   if( yaw_setpoint      >= 1490 && yaw_setpoint       <= 1510 ) yaw_setpoint      = 1500;  
-  if( aux_3             >= 1390 && aux_3              <= 1610 ) aux_3             = 1500; 
+  if( aux_4             >= 1390 && aux_4              <= 1610 ) aux_4             = 1500; 
 
+  if( aux_1 < 1150 ) aux_1_index = 0;
+  else if( aux_1 > 1850 ) aux_1_index = 2;
+  else aux_1 = aux_1_index = 1;
 
-  if( aux_1 < 1150 ) attitude_pTerm_index = 0;
-  else if( aux_1 > 1850 ) attitude_pTerm_index = 1;
-  else aux_1 = attitude_pTerm_index = 2;
+  if( aux_2 < 1150 ) aux_2_index = 0;
+  else if( aux_2 > 1850 ) aux_2_index = 2;
+  else aux_2_index = 1;    
 
-  if( aux_2 < 1150 ) aux_2 = 1000;
-  else if( aux_2 > 1850 ) aux_2 = 2000;
-  else aux_2 = aux_2 = 1500;    
-
-  if( aux_4 < 1150 ) aux_4 = 1000;
-  else if( aux_4 > 1850 ) aux_4 = 2000;
-  else aux_4 = aux_4 = 1500;  
+  if( aux_3 < 1150 ) aux_3_index = 0;
+  else if( aux_3 > 1850 ) aux_3_index = 2;
+  else aux_3_index = 1;  
 
   ////////////////////////////////////////////////////////////////
   // use trim wheel input to trim the yaw 
-  if( aux_3 != 1500 ) yaw_trim_ticks += 1;
-  else yaw_trim_ticks = 0;
-
-  if( aux_4 == 1000 ) {
-    if( yaw_trim_ticks > 50 ) {
-      if( aux_3 < 1500) yaw_trim -= 1;
-      else if( aux_3 > 1500 ) yaw_trim += 1;
-      yaw_trim_ticks = 0; 
-    }
-    if( yaw_trim >  150 )  yaw_trim =  150;
-    if( yaw_trim < -150 )  yaw_trim = -150;
-  } else if ( aux_4 == 1500 ) {
-    if( yaw_trim_ticks > 50 ) {
-      yaw_trim_ticks = 0; 
-    }
-    if( yaw_trim >  150 )  yaw_trim =  150;
-    if( yaw_trim < -150 )  yaw_trim = -150;    
-  } else if ( aux_4 == 2000 ) {
-    if( yaw_trim_ticks > 50 ) {
-      yaw_trim_ticks = 0; 
-    }
-    if( yaw_trim >  150 )  yaw_trim =  150;
-    if( yaw_trim < -150 )  yaw_trim = -150;    
-  } else {
-    yaw_trim_ticks = 0;
+  if( aux_4 != 1500 ) c_trim_ticks += 1;
+  else {
+    c_trim_ticks = 0;
+    c_trim = 0;
+  }
+  
+  if( c_trim_ticks > 100 ) {
+    if( aux_4 < 1500) c_trim -= 1;
+    else if( aux_4 > 1500 ) c_trim += 1;
   }
   //
   ////////////////////////////////////////////////////////////////
-  
 
-  ////////////////////////////////////////////////////////////////////
-  // Simple Arm/Disarm.  Hold throttle at lowest position for 500ms
+  // function call based on switch positions
+  // (*(p[aux_1_index][aux_2_index][aux_4_index]))() ;
+  // function call based on switch positions
+
+
+  if( aux_3_index == 2 ) {
+    if( c_trim_ticks > 100 ) {
+      if ( aux_1_index == 0 && aux_2_index == 0 ) {
+          if( c_trim_ticks > 100 ) yaw_trim += c_trim ;
+          if( yaw_trim >  150 )  yaw_trim =  150;
+          if( yaw_trim < -150 )  yaw_trim = -150;
+  #ifdef DEBUG        
+          Serial.print("yaw trim"); Serial.print("\t"); Serial.println(yaw_trim);   
+  #endif
+        } else 
+      if ( aux_1_index == 0 && aux_2_index == 1 ) {
+  #ifdef DEBUG      
+          Serial.print("roll trim"); Serial.print("\t"); Serial.println(c_trim);   
+  #endif        
+        } else 
+      if ( aux_1_index == 0 && aux_2_index == 2 ) {
+  #ifdef DEBUG      
+          Serial.print("pitch trim"); Serial.print("\t"); Serial.println(c_trim);  
+  #endif                  
+      } else 
+      if ( aux_1_index == 1 && aux_2_index == 0 ) {
+          if( c_trim_ticks > 100 ) attitude_pTerm += c_trim/100.0;
+          if( attitude_pTerm > 5 )  attitude_pTerm = 5;
+          if( attitude_pTerm < 0 )  attitude_pTerm = 0;
+  #ifdef DEBUG         
+          Serial.print("attitude pid: pTerm"); Serial.print("\t"); Serial.println(attitude_pTerm);  
+  #endif                  
+        } else 
+      if ( aux_1_index == 1 && aux_2_index == 1 ) {
+  #ifdef DEBUG      
+          Serial.print("attitude pid: iTerm"); Serial.print("\t"); Serial.println(c_trim); 
+  #endif
+        } else 
+      if ( aux_1_index == 1 && aux_2_index == 2 ) {
+  #ifdef DEBUG      
+          Serial.print("attitude pid: dTerm"); Serial.print("\t"); Serial.println(c_trim);  
+  #endif
+      } else 
+      if ( aux_1_index == 2 && aux_2_index == 0 ) {
+          if( c_trim_ticks > 100 ) rate_pid_gains[0] += c_trim/100.0;
+          if(  rate_pid_gains[0] > 5 )   rate_pid_gains[0] = 5;
+          if(  rate_pid_gains[0] < 0 )   rate_pid_gains[0] = 0;
+  #ifdef DEBUG        
+          Serial.print("rate pid: pTerm"); Serial.print("\t"); Serial.println(rate_pid_gains[0]);            
+  #endif        
+        } else 
+      if ( aux_1_index == 2 && aux_2_index == 1 ) {
+          if( c_trim_ticks > 100 ) rate_pid_gains[1] += c_trim/100.0;
+          if(  rate_pid_gains[1] > 5 )   rate_pid_gains[1] = 5;
+          if(  rate_pid_gains[1] < 0 )   rate_pid_gains[1] = 0;
+  #ifdef DEBUG        
+          Serial.print("rate pid: iTerm"); Serial.print("\t"); Serial.println(rate_pid_gains[1]);            
+  #endif        
+        } else 
+      if ( aux_1_index == 2 && aux_2_index == 2 ) {
+          if( c_trim_ticks > 100 ) rate_pid_gains[2] += c_trim/100.0;
+          if(  rate_pid_gains[2] > 20 )  rate_pid_gains[2] = 20;
+          if(  rate_pid_gains[2] < 0 )   rate_pid_gains[2] = 0;
+  #ifdef DEBUG        
+          Serial.print("rate pid: dTerm"); Serial.print("\t"); Serial.println(rate_pid_gains[2]);     
+  #endif               
+      }   
+    } 
+  } else {
+    // back to defualts
+    reset_to_defaults();
+    //Serial.println("reset to default values");
+  }
+
+  if( c_trim_ticks > 100 ) {
+    c_trim_ticks = 0; 
+  }  
+  //
+  ////////////////////////////////////////////////////////////////
+ 
+
   if( throttle <= MIN_ESC_CUTOFF ) {
     // Look for ESC Arm/Disarm gestures
-    if( throttle_setpoint < 1050 ) {
-        guesture_count ++;
-    } else {
-      guesture_count = 0;
-    }
-
-    if( guesture_count >= 500 ) {
-      if( system_check & INIT_ESC_ARMED ) {
-        disarm_esc();
-      } else {
+    if( throttle_setpoint < 1050 && yaw_setpoint < 1050 && !(system_check & INIT_ESC_ARMED) ) {
         throttle = 0;
         pid_reset();
         gyro_pitch = 0; 
         gyro_roll = 0; 
         gyro_yaw = 0;
-        arm_esc();      
-      }    
-      guesture_count = 0;
+        arm_esc();         
+    } else if ( throttle_setpoint < 1050 && yaw_setpoint > 1850 && (system_check & INIT_ESC_ARMED) ) {
+        disarm_esc();      
     }
   }
-  // Simple Arm/Disarm. 
-  ////////////////////////////////////////////////////////////////////
 
   // safety/testing
   // only yaw when throttle is nuteral
@@ -225,12 +279,12 @@ void loop() {
   roll_setpoint     = (roll_setpoint     - 1500) ;
   yaw_setpoint      = (yaw_setpoint      - 1500) ;   
 
-  //digitalWrite(12,HIGH);
+  digitalWrite(12,HIGH);
 
   // read_mpu_process();      // 784us : gyro+accel raw reads with LPF : moved the MPU read process to the ESC PWM 1000us idle time
   mpu_conversion_process();   // 544us : convert to degress/sec and calculate angles using complinetary filter.
   
-  //digitalWrite(12,LOW);
+  digitalWrite(12,LOW);
 
   throttle_input_gain = throttle_setpoint / 600.0;
 
@@ -365,6 +419,8 @@ void loop() {
  // Serial.print( "\t" );
  // Serial.print( accl_read_z );
  // Serial.print( "\t" );
+
+/* 
   Serial.print( gyro_yaw );
   Serial.print( "\t" );
   Serial.print( yaw_setpoint );
@@ -372,6 +428,8 @@ void loop() {
   Serial.print( va ); Serial.print( "\t" ); Serial.print( vc );     // stick yaw right - increase  , hard left increase
   Serial.print( "\t" ); 
   Serial.print( vb ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease    
+*/  
+ 
 #endif
   
   update_motors();

@@ -22,9 +22,6 @@ int aux_2;
 int aux_3;
 int aux_4;
 
-//Kalman kalmanX; // Create the Kalman instances
-//Kalman kalmanY;
-
 // using a center stick throttle
 // throttle value accumulates or decays bases on throttle_input
 // throttle is a value of 1000 to 2000
@@ -76,32 +73,22 @@ void setup() {
   ppm_channels[7] = 1500;
   ppm_channels[8] = 1500;
 
-#ifndef UNIT_TEST_MODE
   attachInterrupt(digitalPinToInterrupt(3), ppmRising, RISING);  // PPM input setup
-  #ifdef DEBUG
+#ifdef DEBUG
     delay(50);
     if( !ppm_sync ) Serial.println("Power on Transmitter");
-  #endif
+#endif
   while( !ppm_sync ) {
     delay(10);        // wait for ppm sync
   }
   wait_for_initial_inputs();  // wait for all stick to be neutral
-#endif  
 
   init_mpu();
   calibrate();
   init_esc();
   init_pid();
 
-#ifdef UNIT_TEST_MODE
-  OCR0A = 0xAF;
-  TIMSK0 |= _BV(OCIE0A); 
-#endif
-
   timer = micros();
-
-//  kalmanX.setAngle(0);
-//  kalmanY.setAngle(0);
 
 #ifdef DEBUG
     Serial.println( "init_comleted" );
@@ -111,10 +98,6 @@ void setup() {
 unsigned int guesture_count = 0;
 float throttle_input_gain = 0.0;
 float f_throttle = MIN_ESC_SIGNAL;
-
-#ifdef DEBUG
-int foo=4;
-#endif
 
 int c_trim_ticks = 0;
 int c_trim = 0;
@@ -156,6 +139,10 @@ void loop() {
   else if( aux_3 > 1850 ) aux_3_index = 2;
   else aux_3_index = 1;  
 
+
+  ////////////////////////////////////////////////////////////////
+  // PID Tuning via AUX channels
+
   ////////////////////////////////////////////////////////////////
   // use trim wheel input to trim the yaw 
   if( aux_4 != 1500 ) c_trim_ticks += 1;
@@ -171,78 +158,72 @@ void loop() {
   //
   ////////////////////////////////////////////////////////////////
 
-  // function call based on switch positions
-  // (*(p[aux_1_index][aux_2_index][aux_4_index]))() ;
-  // function call based on switch positions
-
-
   if( aux_3_index == 2 ) {
     if( c_trim_ticks > 100 ) {
       if ( aux_1_index == 0 && aux_2_index == 0 ) {
           if( c_trim_ticks > 100 ) yaw_trim += c_trim ;
           if( yaw_trim >  150 )  yaw_trim =  150;
           if( yaw_trim < -150 )  yaw_trim = -150;
-  #ifdef DEBUG        
+#ifdef DEBUG        
           Serial.print("yaw trim"); Serial.print("\t"); Serial.println(yaw_trim);   
-  #endif
+#endif
         } else 
       if ( aux_1_index == 0 && aux_2_index == 1 ) {
-  #ifdef DEBUG      
+#ifdef DEBUG      
           Serial.print("roll trim"); Serial.print("\t"); Serial.println(c_trim);   
-  #endif        
+#endif        
         } else 
       if ( aux_1_index == 0 && aux_2_index == 2 ) {
-  #ifdef DEBUG      
+#ifdef DEBUG      
           Serial.print("pitch trim"); Serial.print("\t"); Serial.println(c_trim);  
-  #endif                  
+#endif                  
       } else 
       if ( aux_1_index == 1 && aux_2_index == 0 ) {
           if( c_trim_ticks > 100 ) attitude_pTerm += c_trim/100.0;
           if( attitude_pTerm > 5 )  attitude_pTerm = 5;
           if( attitude_pTerm < 0 )  attitude_pTerm = 0;
-  #ifdef DEBUG         
+#ifdef DEBUG         
           Serial.print("attitude pid: pTerm"); Serial.print("\t"); Serial.println(attitude_pTerm);  
-  #endif                  
+#endif                  
         } else 
       if ( aux_1_index == 1 && aux_2_index == 1 ) {
-  #ifdef DEBUG      
+#ifdef DEBUG      
           Serial.print("attitude pid: iTerm"); Serial.print("\t"); Serial.println(c_trim); 
-  #endif
+#endif
         } else 
       if ( aux_1_index == 1 && aux_2_index == 2 ) {
-  #ifdef DEBUG      
+#ifdef DEBUG      
           Serial.print("attitude pid: dTerm"); Serial.print("\t"); Serial.println(c_trim);  
-  #endif
+#endif
       } else 
       if ( aux_1_index == 2 && aux_2_index == 0 ) {
           if( c_trim_ticks > 100 ) rate_pid_gains[0] += c_trim/100.0;
           if(  rate_pid_gains[0] > 5 )   rate_pid_gains[0] = 5;
           if(  rate_pid_gains[0] < 0 )   rate_pid_gains[0] = 0;
-  #ifdef DEBUG        
+#ifdef DEBUG        
           Serial.print("rate pid: pTerm"); Serial.print("\t"); Serial.println(rate_pid_gains[0]);            
-  #endif        
-        } else 
+#endif        
+      } else 
       if ( aux_1_index == 2 && aux_2_index == 1 ) {
           if( c_trim_ticks > 100 ) rate_pid_gains[1] += c_trim/100.0;
           if(  rate_pid_gains[1] > 5 )   rate_pid_gains[1] = 5;
           if(  rate_pid_gains[1] < 0 )   rate_pid_gains[1] = 0;
-  #ifdef DEBUG        
+#ifdef DEBUG        
           Serial.print("rate pid: iTerm"); Serial.print("\t"); Serial.println(rate_pid_gains[1]);            
-  #endif        
-        } else 
+#endif        
+      } else 
       if ( aux_1_index == 2 && aux_2_index == 2 ) {
           if( c_trim_ticks > 100 ) rate_pid_gains[2] += c_trim/100.0;
           if(  rate_pid_gains[2] > 20 )  rate_pid_gains[2] = 20;
           if(  rate_pid_gains[2] < 0 )   rate_pid_gains[2] = 0;
-  #ifdef DEBUG        
+#ifdef DEBUG        
           Serial.print("rate pid: dTerm"); Serial.print("\t"); Serial.println(rate_pid_gains[2]);     
-  #endif               
+#endif               
       }   
     } 
   } else {
-    // back to defualts
+    // back to defaults
     reset_to_defaults();
-    //Serial.println("reset to default values");
   }
 
   if( c_trim_ticks > 100 ) {
@@ -250,7 +231,8 @@ void loop() {
   }  
   //
   ////////////////////////////////////////////////////////////////
- 
+  //
+  ////////////////////////////////////////////////////////////////
 
   if( throttle <= MIN_ESC_CUTOFF ) {
     // Look for ESC Arm/Disarm gestures
@@ -285,6 +267,8 @@ void loop() {
   mpu_conversion_process();   // 544us : convert to degress/sec and calculate angles using complinetary filter.
   
   digitalWrite(12,LOW);
+
+  if( throttle_setpoint <= -470 ) throttle = 0;
 
   throttle_input_gain = throttle_setpoint / 600.0;
 
@@ -340,8 +324,7 @@ void loop() {
     vd -= yaw_trim;
 
 #ifdef DEBUG
-    // Serial.print( ppm_channels[foo] );
-    // Serial.print("\t");
+    Serial.println( attitude_pTerm * (roll_angle - roll_setpoint/15.0) );
 
     // pitch test
     // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd );    // stick pitch input - nose up, should increase, gryo up should decrease
@@ -436,46 +419,3 @@ void loop() {
 
 }
 
-#ifdef UNIT_TEST_MODE
-// unit test harness
-volatile int aa_dir = 10;
-volatile unsigned long my_counter = 0;
-// Interrupt is called once a millisecond
-SIGNAL(TIMER0_COMPA_vect) 
-{
-  my_counter ++ ;
-  if( my_counter == 10 ) {
-        
-    if( system_check & INIT_PID_ON ) {
-  
-        if( system_check & INIT_ESC_ARMED ) {
-
-          if( throttle < 1400 ) {
-            ppm_channels[3] = 1600;
-          } else {
-            ppm_channels[3] = 1500;
-
-
-            if( ppm_channels[foo] >= 1800 || ppm_channels[foo] <= 1200 ) {
-              aa_dir = aa_dir * -1;
-            }
-
-            ppm_channels[foo] += aa_dir ;
-          }
-          
-        } else {
-          ppm_channels[3] = 1000;
-          
-        }
-    
-      //ppm_channels[1] ;  // roll
-      //ppm_channels[2] ;  // pitch
-      //ppm_channels[3] ;  // throttle
-      //ppm_channels[4] ;  // yaw
-
-      }
-
-      my_counter = 0;      
-  }
-}
-#endif

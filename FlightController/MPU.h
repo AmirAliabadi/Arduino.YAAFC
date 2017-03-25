@@ -64,10 +64,6 @@ double gyro_offsets_z = 0.0;
 double pitch_angle_offset = 0.0;
 double roll_angle_offset  = 0.0;
 
-// kalmanFilter
-//double kalAngleX = 0.0;
-//double kalAngleY = 0.0;
-
 int mpu_address = 0x68;
 
 /* MPU 6050 Orientation:
@@ -228,9 +224,7 @@ void mpu_conversion_process() {
 
   pitch_angle = (pitch_angle - pitch_angle_offset) ; 
   roll_angle  = (roll_angle  - roll_angle_offset ) ; 
-
-  //kalAngleX = kalmanX.getAngle(x_angle, gyro[0], dt);
-  //kalAngleY = kalmanY.getAngle(y_angle, gyro[1], dt);     
+   
 }
 
 

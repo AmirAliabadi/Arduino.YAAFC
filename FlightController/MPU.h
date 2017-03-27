@@ -339,9 +339,27 @@ void calibrate_accl() {
 
 void calibrate() {
   calibrate_gyro();
-  calibrate_accl();
+  
+  if( calibartion_mode ) {  
+    calibrate_accl();
+
+    eeprom_data.id[0] = 'A';
+    eeprom_data.id[1] = 'A';    
+    eeprom_data.id[2] = 'A';    
+    eeprom_data.gyro_offsets_x      = gyro_offsets_x;
+    eeprom_data.gyro_offsets_y      = gyro_offsets_y;
+    eeprom_data.gyro_offsets_z      = gyro_offsets_z;
+    eeprom_data.pitch_angle_offset  = pitch_angle_offset;
+    eeprom_data.roll_angle_offset   = roll_angle_offset;
+    EEPROM.put(0, eeprom_data);
+  
+  } else {
+    pitch_angle_offset = eeprom_data.pitch_angle_offset ;
+    roll_angle_offset  = eeprom_data.roll_angle_offset ;
+  }
 
   system_check |= INIT_MPU_STABLE;
+  
 #ifdef DEBUG
     Serial.print( "gyro offsets: " );
     Serial.print(  gyro_offsets_x );
@@ -359,4 +377,5 @@ void calibrate() {
 
     delay(5000);
 #endif
+
 }

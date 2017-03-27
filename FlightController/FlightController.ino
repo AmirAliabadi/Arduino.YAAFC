@@ -4,8 +4,9 @@
 #include <Wire.h>
 //#include <Kalman.h> twice as slow as complementary filer
 
-#define DEBUG
-//#define UNIT_TEST_MODE
+//#define DEBUG
+
+boolean calibartion_mode = false; // no pids, throttle max is 2000us
 
 #include "FlightController.h"
 
@@ -35,7 +36,6 @@ unsigned long  timer = 0;
 #include "PID.h"
 #include "ESC.h"
 
-
 void setup() {
 #ifdef DEBUG
   Serial.begin(57600);
@@ -45,9 +45,9 @@ void setup() {
       
   DDRB |= B00110000;                                           //ports 12 and 13 as output.
 
-/*
+
   EEPROM.get(0, eeprom_data);
-  if(eeprom_data.id[0] != 'A' && eeprom_data.id[1] != 'A') {
+  if( !calibartion_mode && eeprom_data.id[0] != 'A' && eeprom_data.id[1] != 'A') {
 #ifdef DEBUG
   Serial.println("Please run Calibration");
 #endif
@@ -58,7 +58,6 @@ void setup() {
       delay(100);      
     }
   } 
-*/  
 
   Wire.begin();
   Wire.setClock(400000L);   // i2c at 400k Hz
@@ -104,7 +103,6 @@ int c_trim = 0;
 
 int yaw_trim = 0;
 
-boolean calibartion_mode = false; // no pids, throttle max is 2000us
 void loop() {
   digitalWrite(12,!digitalRead(12));  
 
@@ -268,11 +266,19 @@ void loop() {
   
   digitalWrite(12,LOW);
 
-  if( throttle_setpoint <= -470 ) throttle = 0;
+#ifdef DEBUG
+//  Serial.print( throttle_setpoint );
+//  Serial.print( "\t" );
+//  Serial.println( throttle );
+#endif
 
   throttle_input_gain = throttle_setpoint / 600.0;
 
   if( calibartion_mode ) {
+
+    if( throttle_setpoint <= -470 ) {
+      f_throttle = MIN_ESC_SIGNAL;
+    }
     
     throttle = (int)( f_throttle += throttle_input_gain );
 
@@ -295,6 +301,10 @@ void loop() {
 #endif
     
   } else  if( system_check & INIT_ESC_ARMED ) {
+
+    if( throttle_setpoint <= -470 ) {
+      f_throttle = MIN_ESC_CUTOFF;
+    }
 
     throttle = (int)( f_throttle += throttle_input_gain );
 
@@ -324,7 +334,7 @@ void loop() {
     vd -= yaw_trim;
 
 #ifdef DEBUG
-    Serial.println( attitude_pTerm * (roll_angle - roll_setpoint/15.0) );
+//    Serial.println( attitude_pTerm * (roll_angle - roll_setpoint/15.0) );
 
     // pitch test
     // Serial.print( va ); Serial.print( "\t" ); Serial.println( vd );    // stick pitch input - nose up, should increase, gryo up should decrease

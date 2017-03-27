@@ -4,7 +4,7 @@
  *  pitch/roll : 1.04, 0.05, 15
  */
 
-float attitude_pTerm     = 0.60;
+float attitude_pTerm     = 5.60;
 float  yaw_pid_gains[3]  = {4.00, 0.02,  00.0};
 float rate_pid_gains[3]  = {1.03, 0.04,  18.0};
 

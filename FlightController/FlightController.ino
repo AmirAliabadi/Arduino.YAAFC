@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 
 #include <EEPROM.h>             //Include the EEPROM.h library so we can store information onto the EEPROM
 #include <Wire.h>
@@ -178,7 +178,7 @@ void loop() {
       } else 
       if ( aux_1_index == 1 && aux_2_index == 0 ) {
           if( c_trim_ticks > 100 ) attitude_pTerm += c_trim/100.0;
-          if( attitude_pTerm > 5 )  attitude_pTerm = 5;
+          if( attitude_pTerm > 25 )  attitude_pTerm = 25;
           if( attitude_pTerm < 0 )  attitude_pTerm = 0;
 #ifdef DEBUG         
           Serial.print("attitude pid: pTerm"); Serial.print("\t"); Serial.println(attitude_pTerm);  
@@ -413,15 +413,14 @@ void loop() {
  // Serial.print( accl_read_z );
  // Serial.print( "\t" );
 
-/* 
-  Serial.print( gyro_yaw );
-  Serial.print( "\t" );
-  Serial.print( yaw_setpoint );
-  Serial.print( "\t" );
+
+//  Serial.print( gyro_yaw );
+//  Serial.print( "\t" );
+//  Serial.print( yaw_setpoint );
+//  Serial.print( "\t" );
   Serial.print( va ); Serial.print( "\t" ); Serial.print( vc );     // stick yaw right - increase  , hard left increase
   Serial.print( "\t" ); 
   Serial.print( vb ); Serial.print( "\t" ); Serial.println( vd );     // stick yaw left - decrease    
-*/  
  
 #endif
   
